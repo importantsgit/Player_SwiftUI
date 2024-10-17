@@ -8,6 +8,7 @@
 import Combine
 import SwiftUI
 import UIKit
+import AVFoundation
 
 struct playerContainerView: View {
     // 컨트롤러 컨테이너를 노출 시킬지 여부
@@ -19,36 +20,64 @@ struct playerContainerView: View {
     
     @State private var viewSize: CGSize = .zero
     
+    @State private var playerState: AVPlayerView.PlayerState = .init()
+    
+    private var dragPositonY: CGFloat = 0
+    
+    @EnvironmentObject var playerDataModel: PlayerDataModel
+    
     @State private var cancellables = Set<AnyCancellable>()
     
     var body: some View {
-        let tap = SpatialTapGesture()
+        let tapGesture = SpatialTapGesture()
             .onEnded { state in
                 isShowController ? stopTimer() : startShowControllerTimer()
-                let widthHelfSize = viewSize.width / 2
+                let halfWidth = viewSize.width / 2
                 
                 
                 // 왼쪽 영역 클릭
-                if widthHelfSize > state.location.x {
+                if state.location.x < halfWidth {
                     print("Left Tapped")
+                    playerDataModel.player?.play()
                 }
                 // 오른쪽 영역 클릭
                 else {
                     print("Right Tapped")
+                    playerDataModel.player?.pause()
                 }
             }
-        
-        PlayerView()
-            .gesture(tap)
-            .overlay {
-                if isShowController {
-                    ControllerContainerView(
-                        displayControllerCount: $displayControllerCount
-                    )
-                    .id("ControllerContainerView")
-                    .gesture(tap)
+        let dragGesture = DragGesture()
+            .onChanged { state in
+                let halfWidth = viewSize.width / 2
+                
+                // 왼쪽
+                let changeValue = state.translation.height
+                if state.startLocation.x < halfWidth {
+                    print(changeValue)
                 }
-
+                else {
+                    print(changeValue)
+                }
+            }
+            .onEnded { state in
+                print(state.velocity)
+            }
+        PlayerView(
+            player: $playerDataModel.player,
+            state: $playerDataModel.state
+        )
+            .gesture(tapGesture
+                .exclusively(
+                    before: dragGesture
+                )
+            )
+            .overlay {
+                // MARK: if 조건문을 제거해도 뷰가 재갱신되어 State가 초기화됨
+                ControllerContainerView(
+                    displayControllerCount: $displayControllerCount
+                )
+                .hidden(isShowController == false)
+                .gesture(tapGesture)
             }
             .onReadSize { viewSize = $0 }
     }
@@ -66,7 +95,6 @@ struct playerContainerView: View {
         displayControllerCount = 0
         
         displayControllerTimer?.sink { timer in
-            print(displayControllerCount)
             displayControllerCount += 1
             
             if displayControllerCount >= 5 {
@@ -86,32 +114,8 @@ struct playerContainerView: View {
     }
 }
 
-
-final class PlayerControllerFeature {
-    struct State {
-        var playState: PlayState
-        var playerState: PlayerState
-    }
-    
-    @Published var state: State
-    
-    init(state: State) {
-        self.state = state
-    }
-}
-
-enum PlayState {
-    case play
-    case pause
-    case end
-}
-
-enum PlayerState {
-    case idle
-    case Playing
-    case stop
-}
-
 #Preview {
     playerContainerView()
+        .environmentObject(PlayerDataModel(url: nil))
 }
+

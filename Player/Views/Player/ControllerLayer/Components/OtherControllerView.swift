@@ -24,4 +24,5 @@ struct OtherControllerView: View {
         }
         .background(.black.opacity(0.3))
     }
+    
 }

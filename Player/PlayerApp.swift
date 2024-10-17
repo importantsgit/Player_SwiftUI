@@ -30,7 +30,8 @@ struct PlayerApp: App {
 
         
         WindowGroup {
-            ContentView()
+            let url = URL(string: "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4")!
+            ContentView(url: url)
             
         }
         .modelContainer(sharedModelContainer)

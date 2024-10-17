@@ -6,6 +6,8 @@
 //
 
 import SwiftUI
+import AVFAudio
+import Combine
 
 struct ControllerContainerView: View {
     struct ControllerState {
@@ -25,6 +27,7 @@ struct ControllerContainerView: View {
     }
     @Binding var displayControllerCount: Int
     @State private var controllerState: ControllerState = .init()
+    @State private var cancellables = Set<AnyCancellable>()
     
     var body: some View {
         Group {
@@ -46,13 +49,24 @@ struct ControllerContainerView: View {
         }
         .onAppear {
             print("Appear")
-            print(controllerState)
         }
         .onDisappear {
             print("onDisAppear")
-            print(controllerState)
         }
-
+    }
+    
+    private func setupVolumeObserver() {
+        let audioSession = AVAudioSession.sharedInstance()
+        do {
+            try audioSession.setActive(true)
+            var volume = audioSession.outputVolume
+            audioSession.observe(\.outputVolume) { av, _ in
+                let volume = av.outputVolume
+                print(volume)
+            }
+        } catch {
+            print("음량 옵저버 설정에 실패했습니다: \(error)")
+        }
     }
 }
 

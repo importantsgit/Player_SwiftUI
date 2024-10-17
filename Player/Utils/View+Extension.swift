@@ -6,8 +6,31 @@
 //
 
 import SwiftUI
+import MediaPlayer
 
 extension View {
+    @ViewBuilder
+    func detectOrientetion(_ orientation: Binding<UIInterfaceOrientation>) -> some View {
+        modifier(OrientationInfo(orientation: orientation))
+    }
+    
+    @ViewBuilder
+    func hideSystemVolumeView(isHidden: Bool) -> some View {
+        switch isHidden {
+        case true: self
+        case false: self.modifier(VolumeViewModifier())
+        }
+        
+    }
+    
+    // MARK: - hidden 처리 메서드
+    @ViewBuilder
+    func hidden(_ shouldHide: Bool) -> some View {
+        switch shouldHide {
+        case true: self.hidden()
+        case false: self
+        }
+    }
     
     // MARK: 외부로 크기 데이터를 전달하는 메서드
     @ViewBuilder
@@ -31,4 +54,43 @@ extension View {
 struct SizePreferenceKey: PreferenceKey {
     static var defaultValue: CGSize = .zero
     static func reduce(value: inout CGSize, nextValue: () -> CGSize) { }
+}
+
+// MARK: - ViewModifier
+
+struct VolumeView: UIViewRepresentable {
+    func makeUIView(context: Context) -> MPVolumeView {
+        let volumeView = MPVolumeView(frame: CGRect.zero)
+        volumeView.alpha = 0.001
+        volumeView.showsVolumeSlider = true
+        return volumeView
+    }
+    func updateUIView(_ uiView: MPVolumeView, context: Context) { }
+}
+
+struct VolumeViewModifier: ViewModifier {
+    func body(content: Content) -> some View {
+        ZStack {
+            VolumeView()
+                .frame(width: 0, height: 0)
+            content
+        }
+    }
+}
+
+struct OrientationInfo: ViewModifier {
+    @Binding var orientation: UIInterfaceOrientation
+    
+    func body(content: Content) -> some View {
+        content
+            .onReceive(NotificationCenter.default.publisher(for: UIDevice.orientationDidChangeNotification)) { _ in
+                orientation = UIApplication.orientation
+            }
+    }
+}
+
+extension UIInterfaceOrientation {
+    var isLandscape: Bool {
+        return self == .landscapeLeft || self == .landscapeRight
+    }
 }

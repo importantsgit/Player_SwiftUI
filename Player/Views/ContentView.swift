@@ -7,29 +7,45 @@
 
 import SwiftUI
 import UIKit
+import MediaPlayer
 
 struct ContentView: View {
     @State private var currentOrientation = UIApplication.orientation
     @State private var viewSize: CGSize = .zero
+    @StateObject var playerDataModel: PlayerDataModel
+    
+    init(url: URL? = nil) {
+        // 뷰의 생명주기 동안 한번만 초기화되어야 하며, 직접 할당할 수 없음
+        _playerDataModel = StateObject(wrappedValue: .init(url: url))
+    }
     
     var body: some View {
         // 자동으로 Spacing이 들어가기 때문에 0을 입력
         VStack(spacing: 0) {
-            if currentOrientation == .portrait {
-                NavigationController(title: "Video")
-            }
+            NavigationController(title: "Video")
+                .hidden(
+                    currentOrientation == .landscapeLeft ||
+                    currentOrientation == .landscapeRight
+                )
             
             playerContainerView()
                 .frame(height: viewSize.width/1.5)
+                .environmentObject(playerDataModel)
+            // 해당 뷰가 있어야지 볼륨 컨트롤 시, 시스템 볼륨 컨트롤 UI가 안보임
+                .hideSystemVolumeView(
+                    isHidden:
+                        currentOrientation == .portrait ||
+                        currentOrientation == .portraitUpsideDown
+                )
             
-            if currentOrientation == .portrait {
-                ContentDetailView()
-            }
+            ContentDetailView()
+                .hidden(
+                    currentOrientation == .landscapeLeft ||
+                    currentOrientation == .landscapeRight
+                )
         }
-        .onReadSize {
-            print($0)
-            viewSize = $0
-        }
+        .onReadSize { viewSize = $0 }
+        .detectOrientetion($currentOrientation)
     }
 }
 
@@ -75,6 +91,8 @@ struct ContentDetailView: View {
         .background(.gray)
     }
 }
+
+
 
 #Preview {
     ContentView()
