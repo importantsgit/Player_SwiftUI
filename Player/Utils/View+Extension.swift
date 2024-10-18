@@ -16,11 +16,7 @@ extension View {
     
     @ViewBuilder
     func hideSystemVolumeView(isHidden: Bool) -> some View {
-        switch isHidden {
-        case true: self
-        case false: self.modifier(VolumeViewModifier())
-        }
-        
+        self.modifier(VolumeViewModifier(isHidden: isHidden))
     }
     
     // MARK: - hidden 처리 메서드
@@ -60,7 +56,7 @@ struct SizePreferenceKey: PreferenceKey {
 
 struct VolumeView: UIViewRepresentable {
     func makeUIView(context: Context) -> MPVolumeView {
-        let volumeView = MPVolumeView(frame: CGRect.zero)
+        let volumeView = MPVolumeView.view
         volumeView.alpha = 0.001
         volumeView.showsVolumeSlider = true
         return volumeView
@@ -69,10 +65,14 @@ struct VolumeView: UIViewRepresentable {
 }
 
 struct VolumeViewModifier: ViewModifier {
+    let isHidden: Bool
+
     func body(content: Content) -> some View {
         ZStack {
-            VolumeView()
-                .frame(width: 0, height: 0)
+            if !isHidden {
+                VolumeView()
+                    .frame(width: 0, height: 0)
+            }
             content
         }
     }
