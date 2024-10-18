@@ -10,6 +10,13 @@ import AVKit
 import MediaPlayer
 import SwiftUI
 
+enum PlayerTimeState {
+    case playing
+    case ended
+    case pause
+    case buffering
+}
+
 enum PlayerSpeed: CaseIterable {
     case fast
     case normal
@@ -71,10 +78,10 @@ enum PlayerGravity: String, CaseIterable {
 
 struct PlayerView: UIViewRepresentable {
     @Binding var player: AVPlayer?
-    @Binding var state: AVPlayerView.PlayerState
+    @Binding var state: UIPlayerView.PlayerState
     
-    func makeUIView(context: Context) -> AVPlayerView {
-        let view = AVPlayerView(state: state)
+    func makeUIView(context: Context) -> UIPlayerView {
+        let view = UIPlayerView(state: state)
         view.player = player
         view.pipController?.delegate = context.coordinator
         view.setupPip()
@@ -86,8 +93,9 @@ struct PlayerView: UIViewRepresentable {
     // 부모 뷰가 렌더링 된다면 해당 함수 호출
     // 관련된 상태 변수가 변했을 경우
     // 앱 생명주기 이벤트 발생 시
-    func updateUIView(_ uiView: AVPlayerView, context: Context) {
+    func updateUIView(_ uiView: UIPlayerView, context: Context) {
         if uiView.player !== player {
+            print("player is changed")
             uiView.player = player
         }
         // State Update
@@ -108,138 +116,6 @@ struct PlayerView: UIViewRepresentable {
         
         func pictureInPictureControllerWillStartPictureInPicture(_ pictureInPictureController: AVPictureInPictureController) {
             print("pictureInPictureControllerWillStartPictureInPicture")
-        }
-    }
-}
-
-// 그래픽 빨리 감기
-final class AVPlayerView: UIView {
-    struct PlayerState {
-        var mode: PlayerMode
-        var videoQuality: PlayerQualityPreset
-        var speed: PlayerSpeed
-        var gravity: PlayerGravity
-        
-        init(
-            mode: PlayerMode = .pipMode,
-            videoQuality: PlayerQualityPreset = .medium,
-            speed: PlayerSpeed = .normal,
-            gravity: PlayerGravity = .fit
-        ) {
-            self.mode = mode
-            self.videoQuality = videoQuality
-            self.speed = speed
-            self.gravity = gravity
-        }
-    }
-    
-    var player: AVPlayer? {
-        get { playerLayer.player }
-        set { playerLayer.player = newValue }
-    }
-    
-    // 지정한 AVPlayerLayer
-    var playerLayer: AVPlayerLayer {
-        return layer as! AVPlayerLayer
-    }
-    
-    var state: PlayerState
-    
-    // 기본 CALayer 대신 이 특정 layer 클래스를 지정
-    override static var layerClass: AnyClass {
-        return AVPlayerLayer.self
-    }
-    
-    var pipController: AVPictureInPictureController?
-    private let remoteCommandCenter = MPRemoteCommandCenter.shared()
-    
-    init(state: PlayerState){
-        self.state = state
-        super.init(frame: .zero)
-    }
-    
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
-    
-    func setupPip() {
-        if AVPictureInPictureController.isPictureInPictureSupported() {
-            pipController = AVPictureInPictureController(playerLayer: playerLayer)
-        }
-    }
-    
-    func setupRemoteCommands() {
-        remoteCommandCenter.playCommand.addTarget { [weak self] _ in
-            self?.player?.play()
-            return .success
-        }
-        
-        remoteCommandCenter.pauseCommand.addTarget { [weak self] _ in
-            self?.player?.pause()
-            return .success
-        }
-    }
-    
-    func updateState(_ newState: PlayerState) {
-        if state.mode != newState.mode {
-            toggleMode(newState.mode)
-        }
-        
-        if state.gravity != newState.gravity {
-            playerLayer.videoGravity = newState.gravity.value
-        }
-        
-        if state.speed != newState.speed {
-            player?.rate = newState.speed.value
-        }
-        
-        if state.videoQuality != newState.videoQuality {
-            player?.currentItem?.preferredMaximumResolution = state.videoQuality.resolution
-            player?.currentItem?.preferredPeakBitRate = state.videoQuality.bitrate
-        }
-    }
-}
-
-private extension AVPlayerView {
-    func toggleMode(_ mode: PlayerMode) {
-        switch mode {
-        case .audioMode:
-            disablePip()
-            enableAudioMode()
-        case .pipMode:
-            enablePip()
-            disableAudioMode()
-        }
-    }
-    
-    func disablePip() {
-        pipController?.stopPictureInPicture()
-    }
-    
-    func enablePip() {
-        pipController?.startPictureInPicture()
-    }
-    
-    func enableAudioMode() {
-        playerLayer.player = nil
-        setupAudioSession()
-        remoteCommandCenter.playCommand.isEnabled = true
-        remoteCommandCenter.pauseCommand.isEnabled = true
-    }
-    
-    func disableAudioMode() {
-        playerLayer.player = player
-        remoteCommandCenter.playCommand.isEnabled = false
-        remoteCommandCenter.pauseCommand.isEnabled = false
-    }
-    
-    func setupAudioSession() {
-        do {
-            try AVAudioSession.sharedInstance().setCategory(.playback)
-            try AVAudioSession.sharedInstance().setActive(true)
-        }
-        catch {
-            print("error: \(error.localizedDescription)")
         }
     }
 }
