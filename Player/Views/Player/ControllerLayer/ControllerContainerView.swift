@@ -47,26 +47,6 @@ struct ControllerContainerView: View {
                 EmptyView()
             }
         }
-        .onAppear {
-            print("Appear")
-        }
-        .onDisappear {
-            print("onDisAppear")
-        }
-    }
-    
-    private func setupVolumeObserver() {
-        let audioSession = AVAudioSession.sharedInstance()
-        do {
-            try audioSession.setActive(true)
-            var volume = audioSession.outputVolume
-            audioSession.observe(\.outputVolume) { av, _ in
-                let volume = av.outputVolume
-                print(volume)
-            }
-        } catch {
-            print("음량 옵저버 설정에 실패했습니다: \(error)")
-        }
     }
 }
 

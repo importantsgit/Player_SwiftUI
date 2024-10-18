@@ -9,6 +9,12 @@ import SwiftUI
 
 
 struct ControllerView: View {
+    enum ControllerViewAction {
+        case rewindButtonTapped
+        case playButtonTapped
+        case forwardButtonTapped
+    }
+    @EnvironmentObject var playerDataModel: PlayerDataModel
     @Binding var displayControllerCount: Int
     @Binding var controllerState: ControllerContainerView.ControllerState
     
@@ -17,17 +23,16 @@ struct ControllerView: View {
             Spacer()
             HStack {
                 Spacer()
-                Text("ControllerContainerView")
+                Text("ControllerView")
                     .foregroundStyle(.white)
                 Spacer()
             }
             Spacer()
-            HStack {
+            HStack(spacing: 42) {
                 Button {
-                    displayControllerCount = 0
-                    controllerState.showOneControllerView()
+                    handleAction(.rewindButtonTapped)
                 } label: {
-                    Text("one")
+                    Image(systemName: "chevron.left.2")
                         .frame(
                             width: 100,
                             height: 48
@@ -35,10 +40,19 @@ struct ControllerView: View {
                 }
                 
                 Button {
-                    displayControllerCount = 0
-                    controllerState.showTwoControllerView()
+                    handleAction(.playButtonTapped)
                 } label: {
-                    Text("two")
+                    Image(systemName: playerDataModel.playerTimeState == .playing ? "pause" : "play")
+                        .frame(
+                            width: 100,
+                            height: 48
+                        )
+                }
+                
+                Button {
+                    handleAction(.forwardButtonTapped)
+                } label: {
+                    Image(systemName: "chevron.right.2")
                         .frame(
                             width: 100,
                             height: 48
@@ -49,5 +63,26 @@ struct ControllerView: View {
         }
         .background(.black.opacity(0.3))
     }
+    
+    func handleAction(_ action: ControllerViewAction) {
+        switch action {
+        case .forwardButtonTapped:
+            controllerState.showTwoControllerView()
+            
+        case .playButtonTapped:
+            if playerDataModel.isCurrentItemFinished {
+                playerDataModel.player?.seek(to: .zero)
+                return
+            }
+            
+            playerDataModel.playerTimeState == .playing ?
+            playerDataModel.player?.pause() :
+            playerDataModel.player?.play()
+            
+        case .rewindButtonTapped:
+            controllerState.showOneControllerView()
+        }
+        
+        displayControllerCount = 0
+    }
 }
-
