@@ -14,7 +14,11 @@ extension UIApplication {
     }
     
     static var orientation: UIInterfaceOrientation {
-        currentScene?.interfaceOrientation ?? .portrait
+        let current = currentScene?.interfaceOrientation ??
+        // 만약 값이 nil이라면 화면 정보 값을 이용
+        (UIDevice.current.orientation.isLandscape ? .landscapeLeft : .portrait)
+        
+        return current
     }
     
     static var currentWindow: UIWindow? {
