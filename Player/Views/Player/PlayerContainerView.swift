@@ -9,8 +9,14 @@ import Combine
 import SwiftUI
 import UIKit
 import AVFoundation
+import MediaPlayer
 
 struct playerContainerView: View {
+    struct SystemValue {
+        var brightness: CGFloat
+        var volume: CGFloat
+    }
+    
     // 컨트롤러 컨테이너를 노출 시킬지 여부
     @State private var isShowController: Bool = false
     // 컨트롤러 컨테이너를 노출 시킬 시간을 제어하는 타이머
@@ -20,11 +26,18 @@ struct playerContainerView: View {
     
     @State private var viewSize: CGSize = .zero
     
-    @State private var playerState: AVPlayerView.PlayerState = .init()
+    @State private var playerState: UIPlayerView.PlayerState = .init()
     
     private var dragPositonY: CGFloat = 0
     
     @EnvironmentObject var playerDataModel: PlayerDataModel
+    
+    @State private var gestureStart: Bool = false
+    
+    @State private var systemValue: SystemValue = .init(
+        brightness: UIApplication.currentBrightness,
+        volume: CGFloat(AVAudioSession.currentVolume)
+    )
     
     @State private var cancellables = Set<AnyCancellable>()
     
@@ -34,45 +47,61 @@ struct playerContainerView: View {
                 isShowController ? stopTimer() : startShowControllerTimer()
                 let halfWidth = viewSize.width / 2
                 
-                
                 // 왼쪽 영역 클릭
                 if state.location.x < halfWidth {
                     print("Left Tapped")
-                    playerDataModel.player?.play()
                 }
                 // 오른쪽 영역 클릭
                 else {
                     print("Right Tapped")
-                    playerDataModel.player?.pause()
                 }
             }
-        let dragGesture = DragGesture()
+        let dragGesture = DragGesture(minimumDistance: 0)
             .onChanged { state in
                 let halfWidth = viewSize.width / 2
-                
-                // 왼쪽
+                            
                 let changeValue = state.translation.height
+                
                 if state.startLocation.x < halfWidth {
-                    print(changeValue)
+                    // 밝기 조절
+                    let changedBrightnessValue = changeValue / viewSize.height
+                    let value = (systemValue.brightness - changedBrightnessValue)
+
+                    UIApplication.setBrightness(value)
+                    print(value)
                 }
                 else {
-                    print(changeValue)
+                    // 음량 조절
+                    let changedVolumeValue = changeValue / viewSize.height
+                    let value = (systemValue.volume - changedVolumeValue)
+                    MPVolumeView().setVolume(volume: Float(value))
+                    print(value)
                 }
             }
             .onEnded { state in
-                print(state.velocity)
+                let halfWidth = viewSize.width / 2
+                if state.startLocation.x < halfWidth {
+                    systemValue.brightness = UIApplication.currentBrightness
+                }
+                else {
+                    systemValue.volume = CGFloat(AVAudioSession.currentVolume)
+                }
+                
             }
+        ProgressView("Loading...")
+            .hidden(playerDataModel.playerTimeState == .buffering || playerDataModel.isInitialized == false)
+        
         PlayerView(
             player: $playerDataModel.player,
             state: $playerDataModel.state
         )
             .gesture(tapGesture
-                .exclusively(
-                    before: dragGesture
+                .simultaneously(
+                    with: dragGesture
                 )
             )
             .overlay {
-                // MARK: if 조건문을 제거해도 뷰가 재갱신되어 State가 초기화됨
+//                // MARK: if 조건문을 제거해도 뷰가 재갱신되어 State가 초기화됨
                 ControllerContainerView(
                     displayControllerCount: $displayControllerCount
                 )
@@ -80,6 +109,8 @@ struct playerContainerView: View {
                 .gesture(tapGesture)
             }
             .onReadSize { viewSize = $0 }
+            .onAppear {
+            }
     }
     
     func startShowControllerTimer() {
@@ -111,6 +142,42 @@ struct playerContainerView: View {
             displayControllerTimer?.upstream.connect().cancel()
             displayControllerTimer = nil
         }
+    }
+    
+    func setBrightness(value: CGFloat) {
+        UIApplication.currentWindow?.windowScene?.screen.brightness = value
+    }
+    
+    func setVolume(value: Float) {
+        
+    }
+}
+
+extension UIApplication {
+    // 값 반환
+    static var currentBrightness: CGFloat {
+        UIApplication.currentWindow?.windowScene?.screen.brightness ?? 0.5
+    }
+    
+    // 값 설정
+    static func setBrightness(_ value: CGFloat) {
+        UIApplication.currentWindow?.windowScene?.screen.brightness = value
+    }
+}
+
+extension MPVolumeView {
+    static let view = MPVolumeView()
+    
+    func setVolume(volume: Float) {
+        guard let slider = MPVolumeView.view.subviews.first(where: { $0 is UISlider }) as? UISlider
+        else { return }
+        slider.value = volume
+    }
+}
+
+extension AVAudioSession {
+    static var currentVolume: Float {
+        AVAudioSession.sharedInstance().outputVolume
     }
 }
 
