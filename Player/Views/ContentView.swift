@@ -20,32 +20,25 @@ struct ContentView: View {
     }
     
     var body: some View {
+        let isLandscape = currentOrientation.isLandscape
         // 자동으로 Spacing이 들어가기 때문에 0을 입력
         VStack(spacing: 0) {
             NavigationController(title: "Video")
-                .hidden(
-                    currentOrientation == .landscapeLeft ||
-                    currentOrientation == .landscapeRight
-                )
+                .hidden(isLandscape)
             
             playerContainerView()
-                .frame(height: viewSize.width/1.5)
+                .frame(height: viewSize.width*(9/16))
                 .environmentObject(playerDataModel)
             // 해당 뷰가 있어야지 볼륨 컨트롤 시, 시스템 볼륨 컨트롤 UI가 안보임
-                .hideSystemVolumeView(
-                    isHidden:
-                        currentOrientation == .portrait ||
-                        currentOrientation == .portraitUpsideDown
-                )
+            // FIXME: 현재 ViewBuilder로 인해 해당 ContainerView 내 PlayerView
+                .hideSystemVolumeView(isHidden: isLandscape == false)
             
             ContentDetailView()
-                .hidden(
-                    currentOrientation == .landscapeLeft ||
-                    currentOrientation == .landscapeRight
-                )
+                .hidden(isLandscape)
         }
         .onReadSize { viewSize = $0 }
         .detectOrientetion($currentOrientation)
+        .animation(.easeInOut, value: isLandscape)
     }
 }
 
@@ -75,7 +68,6 @@ struct NavigationController: View {
             }
         }
         .frame(height: 48)
-        
     }
 }
 
@@ -91,8 +83,6 @@ struct ContentDetailView: View {
         .background(.gray)
     }
 }
-
-
 
 #Preview {
     ContentView()
