@@ -86,6 +86,7 @@ struct PlayerView: UIViewRepresentable {
         view.pipController?.delegate = context.coordinator
         view.setupPip()
         view.setupRemoteCommands()
+        view.setMode(.pipMode) // mode default => PIP
         
         return view
     }

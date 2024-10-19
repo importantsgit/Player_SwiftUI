@@ -20,7 +20,7 @@ struct playerContainerView: View {
     // 컨트롤러 컨테이너를 노출 시킬지 여부
     @State private var isShowController: Bool = false
     // 컨트롤러 컨테이너를 노출 시킬 시간을 제어하는 타이머
-    @State private var displayControllerTimer: Publishers.Autoconnect<Timer.TimerPublisher>?
+    @State private var displayControllerTimer: Publishers.Autoconnect<Timer.TimerPublisher>? = nil
     // 컨트롤러 컨테이너를 노출 시킬 동안의 카운트 값
     @State private var displayControllerCount = 0
     
@@ -29,8 +29,6 @@ struct playerContainerView: View {
     @State private var playerState: UIPlayerView.PlayerState = .init()
     
     private var dragPositonY: CGFloat = 0
-    
-    @EnvironmentObject var playerDataModel: PlayerDataModel
     
     @State private var gestureStart: Bool = false
     
@@ -41,7 +39,19 @@ struct playerContainerView: View {
     
     @State private var cancellables = Set<AnyCancellable>()
     
+    @EnvironmentObject var playerDataModel: PlayerDataModel
+    
+    @Binding var currentOrientation: UIInterfaceOrientation
+    
+    init(
+        displayControllerTimer: Publishers.Autoconnect<Timer.TimerPublisher>? = nil,
+        currentOrientation: Binding<UIInterfaceOrientation>) {
+        self.displayControllerTimer = displayControllerTimer
+        self._currentOrientation = currentOrientation
+    }
+    
     var body: some View {
+        let isLandscape = currentOrientation.isLandscape
         let tapGesture = SpatialTapGesture()
             .onEnded { state in
                 isShowController ? stopTimer() : startShowControllerTimer()
@@ -58,6 +68,8 @@ struct playerContainerView: View {
             }
         let dragGesture = DragGesture(minimumDistance: 0)
             .onChanged { state in
+                guard isLandscape else { return }
+                
                 let halfWidth = viewSize.width / 2
                             
                 let changeValue = state.translation.height
@@ -66,19 +78,18 @@ struct playerContainerView: View {
                     // 밝기 조절
                     let changedBrightnessValue = changeValue / viewSize.height
                     let value = (systemValue.brightness - changedBrightnessValue)
-
                     UIApplication.setBrightness(value)
-                    print(value)
                 }
                 else {
                     // 음량 조절
                     let changedVolumeValue = changeValue / viewSize.height
                     let value = (systemValue.volume - changedVolumeValue)
                     MPVolumeView().setVolume(volume: Float(value))
-                    print(value)
                 }
             }
             .onEnded { state in
+                guard isLandscape else { return }
+                
                 let halfWidth = viewSize.width / 2
                 if state.startLocation.x < halfWidth {
                     systemValue.brightness = UIApplication.currentBrightness
@@ -182,7 +193,7 @@ extension AVAudioSession {
 }
 
 #Preview {
-    playerContainerView()
+    playerContainerView(currentOrientation: .constant(.portrait))
         .environmentObject(PlayerDataModel(url: nil))
 }
 

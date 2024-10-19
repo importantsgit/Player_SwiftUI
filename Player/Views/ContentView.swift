@@ -10,7 +10,7 @@ import UIKit
 import MediaPlayer
 
 struct ContentView: View {
-    @State private var currentOrientation = UIApplication.orientation
+    @State var currentOrientation = UIApplication.orientation
     @State private var viewSize: CGSize = .zero
     @StateObject var playerDataModel: PlayerDataModel
     
@@ -26,7 +26,9 @@ struct ContentView: View {
             NavigationController(title: "Video")
                 .hidden(isLandscape)
             
-            playerContainerView()
+            playerContainerView(
+                currentOrientation: $currentOrientation
+            )
                 .frame(height: viewSize.width*(9/16))
                 .environmentObject(playerDataModel)
             // 해당 뷰가 있어야지 볼륨 컨트롤 시, 시스템 볼륨 컨트롤 UI가 안보임
@@ -37,7 +39,7 @@ struct ContentView: View {
                 .hidden(isLandscape)
         }
         .onReadSize { viewSize = $0 }
-        .detectOrientetion($currentOrientation)
+        .detectOrientation($currentOrientation)
         .animation(.easeInOut, value: isLandscape)
     }
 }

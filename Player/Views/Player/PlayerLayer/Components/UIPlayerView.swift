@@ -80,7 +80,7 @@ final class UIPlayerView: UIView {
     func updateState(_ newState: PlayerState) {
         if state.mode != newState.mode {
             print("Player Mode Changed: \(state.mode) => \(newState.mode)")
-            toggleMode(newState.mode)
+            setMode(newState.mode)
         }
         
         if state.gravity != newState.gravity {
@@ -99,10 +99,9 @@ final class UIPlayerView: UIView {
             player?.currentItem?.preferredPeakBitRate = newState.videoQuality.bitrate
         }
     }
-}
-
-private extension UIPlayerView {
-    func toggleMode(_ mode: PlayerMode) {
+    
+    func setMode(_ mode: PlayerMode) {
+        setupAudioSession(mode: mode)
         switch mode {
         case .audioMode:
             disablePip()
@@ -112,7 +111,9 @@ private extension UIPlayerView {
             disableAudioMode()
         }
     }
-    
+}
+
+private extension UIPlayerView {
     func disablePip() {
         pipController?.stopPictureInPicture()
     }
@@ -123,7 +124,6 @@ private extension UIPlayerView {
     
     func enableAudioMode() {
         playerLayer.player = nil
-        setupAudioSession()
         remoteCommandCenter.playCommand.isEnabled = true
         remoteCommandCenter.pauseCommand.isEnabled = true
     }
@@ -134,9 +134,9 @@ private extension UIPlayerView {
         remoteCommandCenter.pauseCommand.isEnabled = false
     }
     
-    func setupAudioSession() {
+    func setupAudioSession(mode: PlayerMode) {
         do {
-            try AVAudioSession.sharedInstance().setCategory(.playback)
+            try AVAudioSession.sharedInstance().setCategory(.playback, mode: mode == .pipMode ? .moviePlayback : .default)
             try AVAudioSession.sharedInstance().setActive(true)
         }
         catch {
