@@ -78,7 +78,7 @@ struct SizePreferenceKey: PreferenceKey {
 // MARK: - Volume View
 struct VolumeView: UIViewRepresentable {
     func makeUIView(context: Context) -> MPVolumeView {
-        let volumeView = MPVolumeView.view
+        let volumeView = MPVolumeView()
         volumeView.alpha = 0.001
         volumeView.showsVolumeSlider = true
         return volumeView
