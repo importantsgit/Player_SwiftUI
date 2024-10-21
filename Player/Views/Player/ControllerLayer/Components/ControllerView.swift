@@ -7,7 +7,6 @@
 
 import SwiftUI
 
-
 struct ControllerView: View {
     enum ControllerViewAction {
         case rewindButtonTapped
@@ -15,17 +14,24 @@ struct ControllerView: View {
         case forwardButtonTapped
     }
     @EnvironmentObject var playerDataModel: PlayerDataModel
-    @Binding var displayControllerCount: Int
-    @Binding var controllerState: ControllerContainerView.ControllerState
+    @Binding var isLockController: Bool
+    @Binding var controllerDisplayState: ControllerContainerView.ControllerDisplayState
     
     var body: some View {
         VStack {
             Spacer()
+                .frame(height: 24)
             HStack {
                 Spacer()
-                Text("ControllerView")
-                    .foregroundStyle(.white)
+                Button {
+                    isLockController = true
+                } label: {
+                    Image(systemName: "lock.fill")
+                        .frame(width: 48, height: 48)
+                }
+
                 Spacer()
+                    .frame(width: 16)
             }
             Spacer()
             HStack(spacing: 42) {
@@ -60,14 +66,14 @@ struct ControllerView: View {
                 }
             }
             Spacer()
+                .frame(height: 24)
         }
-        .background(.black.opacity(0.3))
     }
     
     func handleAction(_ action: ControllerViewAction) {
         switch action {
         case .forwardButtonTapped:
-            controllerState.showTwoControllerView()
+            controllerDisplayState = .main(.other)
             
         case .playButtonTapped:
             if playerDataModel.isCurrentItemFinished {
@@ -80,9 +86,9 @@ struct ControllerView: View {
             playerDataModel.player?.play()
             
         case .rewindButtonTapped:
-            controllerState.showOneControllerView()
+            controllerDisplayState = .main(.other)
         }
         
-        displayControllerCount = 0
+        playerDataModel.showControllerSubject.send(true)
     }
 }

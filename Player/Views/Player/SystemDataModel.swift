@@ -29,11 +29,6 @@ final class SystemDataModel: ObservableObject {
         changed: AVAudioSession.currentVolume
     )
     
-    var combinedPublisher: AnyPublisher<(BrightnessValue, VolumeValue), Never> {
-        Publishers.CombineLatest($brightnessValue, $volumeValue)
-            .eraseToAnyPublisher()
-    }
-    
     private var cancellables = Set<AnyCancellable>()
     
     func setBrightness(value: CGFloat) {

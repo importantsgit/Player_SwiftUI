@@ -13,7 +13,6 @@ struct OtherControllerView: View {
     }
     @EnvironmentObject var playerDataModel: PlayerDataModel
     
-    @Binding var displayControllerCount: Int
     let title: String
     
     var body: some View {
@@ -42,7 +41,7 @@ struct OtherControllerView: View {
             playerDataModel.state.gravity = [.fill, .fit, .stretch].randomElement()!
         }
         
-        displayControllerCount = 0
+        playerDataModel.showControllerSubject.send(true)
     }
     
 }

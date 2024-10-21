@@ -41,6 +41,7 @@ struct ContentView: View {
         .onReadSize { viewSize = $0 }
         .detectOrientation($currentOrientation)
         .animation(.easeInOut, value: isLandscape)
+        .ignoresSafeArea(.all, edges: isLandscape ? [.bottom] : [])
     }
 }
 

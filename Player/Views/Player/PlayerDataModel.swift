@@ -9,8 +9,6 @@ import AVFoundation
 import Combine
 import SwiftUI
 
-
-
 final class PlayerDataModel: ObservableObject {
     @Published var player: AVPlayer?
     @Published var state: UIPlayerView.PlayerState
@@ -21,6 +19,15 @@ final class PlayerDataModel: ObservableObject {
     @Published var playerTimeState: PlayerTimeState = .pause    // 영상 상태 여부
     @Published var playerError: Error?                          // 에러 여부
     
+    // MARK: 해당 Subject에 send 시, 5초 후 timerPublisher가 sink됨
+    var showControllerSubject = PassthroughSubject<Bool, Never>()
+    lazy var timerPublisher: AnyPublisher<Void, Never> = {
+        showControllerSubject
+            .filter { $0 } // true 만
+            .map { _ in () } // Void로 변환
+            .debounce(for: .seconds(5), scheduler: RunLoop.main)
+            .eraseToAnyPublisher()
+    }()
     
     private var cancellables = Set<AnyCancellable>()
     

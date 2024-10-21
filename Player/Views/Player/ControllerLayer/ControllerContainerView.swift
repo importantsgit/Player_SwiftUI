@@ -10,62 +10,53 @@ import AVFAudio
 import Combine
 
 struct ControllerContainerView: View {
-    struct ControllerState {
-        var isDisplayMainView: Bool
-        var isDisplayOneView: Bool
-        var isDisplayTwoView: Bool
+    enum ControllerDisplayState {
+        case main(MainDisplayState)
+        case lock
         
-        init(
-            isDisplayMainView: Bool = true,
-            isDisplayOneView: Bool = false,
-            isDisplayTwoView: Bool = false
-        ) {
-            self.isDisplayMainView = isDisplayMainView
-            self.isDisplayOneView = isDisplayOneView
-            self.isDisplayTwoView = isDisplayTwoView
+        enum MainDisplayState {
+            case normal
+            case system
+            case other
         }
     }
-    @Binding var displayControllerCount: Int
-    @State private var controllerState: ControllerState = .init()
+    
+    @Binding var isLockController: Bool
+    @Binding var controllerDisplayState: ControllerDisplayState
+    @EnvironmentObject var systemDataModel: SystemDataModel
     @State private var cancellables = Set<AnyCancellable>()
     
     var body: some View {
-        Group {
-            if controllerState.isDisplayMainView {
-                ControllerView(
-                    displayControllerCount: $displayControllerCount,
-                    controllerState: $controllerState
+        ZStack {
+            content
+                .background(
+                    Color
+                        .black
+                        .opacity(0.3)
+                        .allowsHitTesting(false)
+                    // allowsHitTesting을 사용하기 위해서 Color 타입을 명시적으로 입력
                 )
-            }
-            else if controllerState.isDisplayOneView {
-                OtherControllerView(displayControllerCount: $displayControllerCount, title: "one")
-            }
-            else if controllerState.isDisplayTwoView {
-                OtherControllerView(displayControllerCount: $displayControllerCount, title: "two")
-            }
-            else {
-                EmptyView()
-            }
         }
     }
-}
-
-extension ControllerContainerView.ControllerState {
-    mutating func showMainControllerView() {
-        self.isDisplayMainView = true
-        self.isDisplayOneView = false
-        self.isDisplayTwoView = false
-    }
     
-    mutating func showOneControllerView() {
-        self.isDisplayMainView = false
-        self.isDisplayOneView = true
-        self.isDisplayTwoView = false
-    }
-    
-    mutating func showTwoControllerView() {
-        self.isDisplayMainView = false
-        self.isDisplayOneView = false
-        self.isDisplayTwoView = true
+    // MARK: - ViewBuilder을 입력시 다양한 타입의 뷰를 반환하거나 여러 개의 뷰를 반환할 수 있다.
+    @ViewBuilder
+    private var content: some View {
+        switch controllerDisplayState {
+        case let .main(state):
+            switch state {
+            case .normal:
+                ControllerView(
+                    isLockController: $isLockController,
+                    controllerDisplayState: $controllerDisplayState
+                )
+            case .system:
+                SystemDisplayView()
+            case .other:
+                OtherControllerView(title: "two")
+            }
+        case .lock:
+            LockView(isLockController: $isLockController)
+        }
     }
 }
