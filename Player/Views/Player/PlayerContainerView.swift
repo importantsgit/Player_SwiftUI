@@ -15,7 +15,6 @@ struct playerContainerView: View {
     @State private var controllerDisplayState: ControllerContainerView.ControllerDisplayState = .main(.normal)
     // 컨트롤러 컨테이너를 노출 시킬지 여부
     @State private var isShowController: Bool = false
-    @State private var isLockController: Bool = false
     
     @State private var viewSize: CGSize = .zero
     
@@ -44,7 +43,7 @@ struct playerContainerView: View {
         let tapGesture = SpatialTapGesture()
             .onEnded { state in
                 playerDataModel.showControllerSubject.send(isShowController == false)
-                controllerDisplayState = isLockController ? .lock : .main(.normal)
+                
                 
                 let halfWidth = viewSize.width / 2
                 
@@ -60,9 +59,10 @@ struct playerContainerView: View {
         let dragGesture = DragGesture(minimumDistance: 1)
             .onChanged { state in
                 print("dragGesture")
-                guard isLandscape && isLockController else { return }
+                guard isLandscape && controllerDisplayState.isMain
+                else { return }
                 playerDataModel.showControllerSubject.send(true)
-                controllerDisplayState = .main(.normal)
+                controllerDisplayState = .main(.system)
                 
                 let halfWidth = viewSize.width / 2
                 let changeValue = state.translation.height
@@ -110,9 +110,8 @@ struct playerContainerView: View {
         )
             .gesture(combineGesture)
             .overlay {
-//                // MARK: if 조건문을 제거해도 뷰가 재갱신되어 State가 초기화됨
+                // MARK: if 조건문을 제거해도 뷰가 재갱신되어 State가 초기화됨
                 ControllerContainerView(
-                    isLockController: $isLockController,
                     controllerDisplayState: $controllerDisplayState
                 )
                 .environmentObject(systemDataModel)
@@ -125,12 +124,21 @@ struct playerContainerView: View {
                 playerDataModel.showControllerSubject
             ) { isShow in
                 isShowController = isShow
+                
+                if controllerDisplayState.isMain {
+                    controllerDisplayState = .main(.normal)
+                }
             }
             .onReceive(
                 playerDataModel.timerPublisher
             ) { _ in
+                // showControllerSubject.send(true)인 경우만 receive
+                // 5초 후 플레이어를 닫기 위해
                 isShowController = false
-                controllerDisplayState = isLockController ? .lock : .main(.normal)
+                
+                if controllerDisplayState.isMain {
+                    controllerDisplayState = .main(.normal)
+                }
             }
     }
 }

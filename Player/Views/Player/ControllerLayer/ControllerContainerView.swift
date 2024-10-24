@@ -10,18 +10,27 @@ import AVFAudio
 import Combine
 
 struct ControllerContainerView: View {
-    enum ControllerDisplayState {
+    enum ControllerDisplayState: Equatable {
         case main(MainDisplayState)
         case lock
         
-        enum MainDisplayState {
+        enum MainDisplayState: Equatable {
             case normal
             case system
             case other
         }
+        
+        var isMain: Bool {
+            if case .main = self {
+                return true
+            }
+            else {
+                return false
+            }
+        }
     }
     
-    @Binding var isLockController: Bool
+    @State var isLockController: Bool = false
     @Binding var controllerDisplayState: ControllerDisplayState
     @EnvironmentObject var systemDataModel: SystemDataModel
     @State private var cancellables = Set<AnyCancellable>()
@@ -47,7 +56,6 @@ struct ControllerContainerView: View {
             switch state {
             case .normal:
                 ControllerView(
-                    isLockController: $isLockController,
                     controllerDisplayState: $controllerDisplayState
                 )
             case .system:
@@ -56,7 +64,7 @@ struct ControllerContainerView: View {
                 OtherControllerView(title: "two")
             }
         case .lock:
-            LockView(isLockController: $isLockController)
+            LockView(controllerDisplayState: $controllerDisplayState)
         }
     }
 }

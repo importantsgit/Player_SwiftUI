@@ -9,12 +9,12 @@ import SwiftUI
 
 struct ControllerView: View {
     enum ControllerViewAction {
+        case lockButtonTapped
         case rewindButtonTapped
         case playButtonTapped
         case forwardButtonTapped
     }
     @EnvironmentObject var playerDataModel: PlayerDataModel
-    @Binding var isLockController: Bool
     @Binding var controllerDisplayState: ControllerContainerView.ControllerDisplayState
     
     var body: some View {
@@ -24,7 +24,7 @@ struct ControllerView: View {
             HStack {
                 Spacer()
                 Button {
-                    isLockController = true
+                    handleAction(.lockButtonTapped)
                 } label: {
                     Image(systemName: "lock.fill")
                         .frame(width: 48, height: 48)
@@ -66,12 +66,16 @@ struct ControllerView: View {
                 }
             }
             Spacer()
-                .frame(height: 24)
+            Spacer()
+                .frame(height: 72)
         }
     }
     
     func handleAction(_ action: ControllerViewAction) {
         switch action {
+        case .lockButtonTapped:
+            controllerDisplayState = .lock
+            
         case .forwardButtonTapped:
             controllerDisplayState = .main(.other)
             

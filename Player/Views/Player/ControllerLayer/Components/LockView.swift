@@ -8,7 +8,11 @@
 import SwiftUI
 
 struct LockView: View {
-    @Binding var isLockController: Bool
+    enum ControllerViewAction {
+        case unlockButtonTapped
+    }
+    @EnvironmentObject var playerDataModel: PlayerDataModel
+    @Binding var controllerDisplayState: ControllerContainerView.ControllerDisplayState
     
     var body: some View {
         VStack {
@@ -17,7 +21,7 @@ struct LockView: View {
             HStack {
                 Spacer()
                 Button {
-                    isLockController = false
+                    handleAction(.unlockButtonTapped)
                 } label: {
                     Text("잠금해제")
                         .foregroundStyle(.white)
@@ -32,9 +36,17 @@ struct LockView: View {
             Spacer()
         }
     }
+    
+    func handleAction(_ action: ControllerViewAction) {
+        switch action {
+        case .unlockButtonTapped:
+            controllerDisplayState = .main(.normal)
+            playerDataModel.showControllerSubject.send(true)
+        }
+    }
 }
 
 #Preview {
-    LockView(isLockController: .constant(true))
+    LockView(controllerDisplayState: .constant(.lock))
         .background(.black.opacity(0.3))
 }
