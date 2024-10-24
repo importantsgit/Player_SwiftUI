@@ -40,7 +40,9 @@ struct LockView: View {
     func handleAction(_ action: ControllerViewAction) {
         switch action {
         case .unlockButtonTapped:
-            controllerDisplayState = .main(.normal)
+            withAnimation {
+                controllerDisplayState = .main(.normal)
+            }
             playerDataModel.showControllerSubject.send(true)
         }
     }

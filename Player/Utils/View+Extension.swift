@@ -67,6 +67,9 @@ extension View {
         )
         .onPreferenceChange(SizePreferenceKey.self, perform: perform)
     }
+    
+    
+    
 }
 
 // MARK: - Preference Key for Size
@@ -117,5 +120,17 @@ struct OrientationInfo: ViewModifier {
 extension UIInterfaceOrientation {
     var isLandscape: Bool {
         return self == .landscapeLeft || self == .landscapeRight
+    }
+}
+
+
+extension Image {
+    @ViewBuilder
+    func styled(size: CGFloat, tintColor: Color) -> some View {
+        self
+            .resizable()
+            .frame(width: size, height: size)
+            .foregroundColor(tintColor)
+        
     }
 }

@@ -12,6 +12,11 @@ import AVFoundation
 import MediaPlayer
 
 struct playerContainerView: View {
+    
+    @EnvironmentObject var playerDataModel: PlayerDataModel
+    
+    @StateObject var systemDataModel: SystemDataModel = .init()
+    
     @State private var controllerDisplayState: ControllerContainerView.ControllerDisplayState = .main(.normal)
     // 컨트롤러 컨테이너를 노출 시킬지 여부
     @State private var isShowController: Bool = false
@@ -20,15 +25,9 @@ struct playerContainerView: View {
     
     @State private var playerState: UIPlayerView.PlayerState = .init()
     
-    private var dragPositonY: CGFloat = 0
-    
     @State private var gestureStart: Bool = false
     
     @State private var cancellables = Set<AnyCancellable>()
-    
-    @EnvironmentObject var playerDataModel: PlayerDataModel
-    
-    @StateObject var systemDataModel: SystemDataModel = .init()
     
     @Binding var currentOrientation: UIInterfaceOrientation
     
@@ -125,7 +124,8 @@ struct playerContainerView: View {
             ) { isShow in
                 isShowController = isShow
                 
-                if controllerDisplayState.isMain {
+                if isShow == false && controllerDisplayState.isMain {
+                    // FIXME: isShow가 false가 되는 순간에 기본 컨트롤러 UI로 바뀌는데, 애니메이션이 0.2초가 걸려 기본 컨트롤러 UI가 살짝 보이는 이슈 발생
                     controllerDisplayState = .main(.normal)
                 }
             }
@@ -140,6 +140,11 @@ struct playerContainerView: View {
                     controllerDisplayState = .main(.normal)
                 }
             }
+            .animation(.easeInOut(duration: 0.2), value: isShowController)
+        
+        if controllerDisplayState == .audio {
+            AudioModeView(controllerDisplayState: $controllerDisplayState)
+        }
     }
 }
 

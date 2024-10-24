@@ -10,6 +10,7 @@ import SwiftUI
 struct ControllerView: View {
     enum ControllerViewAction {
         case lockButtonTapped
+        case audioButtonTapped
         case rewindButtonTapped
         case playButtonTapped
         case forwardButtonTapped
@@ -23,13 +24,24 @@ struct ControllerView: View {
                 .frame(height: 24)
             HStack {
                 Spacer()
+                
+                Button {
+                    handleAction(.audioButtonTapped)
+                } label: {
+                    Image(systemName: "headphones")
+                        .styled(size: 24, tintColor: .white)
+                        .frame(width: 48, height: 48)
+                }
+                
+                
                 Button {
                     handleAction(.lockButtonTapped)
                 } label: {
                     Image(systemName: "lock.fill")
+                        .styled(size: 24, tintColor: .white)
                         .frame(width: 48, height: 48)
                 }
-
+                
                 Spacer()
                     .frame(width: 16)
             }
@@ -39,30 +51,26 @@ struct ControllerView: View {
                     handleAction(.rewindButtonTapped)
                 } label: {
                     Image(systemName: "chevron.left.2")
-                        .frame(
-                            width: 100,
-                            height: 48
-                        )
+                        .styled(size: 32, tintColor: .white)
+                        .frame(width: 48, height: 48)
                 }
                 
                 Button {
                     handleAction(.playButtonTapped)
                 } label: {
-                    Image(systemName: playerDataModel.playerTimeState == .playing ? "pause" : "play")
-                        .frame(
-                            width: 100,
-                            height: 48
-                        )
+                    Image(
+                        systemName: playerDataModel.playerTimeState == .playing ? "pause" : "play"
+                    )
+                    .styled(size: 32, tintColor: .white)
+                    .frame(width: 48, height: 48)
                 }
                 
                 Button {
                     handleAction(.forwardButtonTapped)
                 } label: {
                     Image(systemName: "chevron.right.2")
-                        .frame(
-                            width: 100,
-                            height: 48
-                        )
+                        .styled(size: 32, tintColor: .white)
+                        .frame(width: 48, height: 48)
                 }
             }
             Spacer()
@@ -75,6 +83,10 @@ struct ControllerView: View {
         switch action {
         case .lockButtonTapped:
             controllerDisplayState = .lock
+            
+        case .audioButtonTapped:
+            controllerDisplayState = .audio
+            playerDataModel.state.mode = .audioMode
             
         case .forwardButtonTapped:
             controllerDisplayState = .main(.other)

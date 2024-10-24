@@ -13,6 +13,7 @@ struct ControllerContainerView: View {
     enum ControllerDisplayState: Equatable {
         case main(MainDisplayState)
         case lock
+        case audio
         
         enum MainDisplayState: Equatable {
             case normal
@@ -65,6 +66,9 @@ struct ControllerContainerView: View {
             }
         case .lock:
             LockView(controllerDisplayState: $controllerDisplayState)
+        
+        case .audio:
+            EmptyView()
         }
     }
 }
