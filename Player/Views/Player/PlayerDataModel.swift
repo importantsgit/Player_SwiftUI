@@ -28,6 +28,17 @@ final class PlayerDataModel: ObservableObject {
             .eraseToAnyPublisher()
     }()
     
+    // TODO: 관찰 가능한 변수로 변환
+    var progressRatio: CGFloat {
+        guard let duration = player?.currentItem?.duration.seconds,
+              let currentTime = player?.currentTime().seconds,
+              duration > 0 && currentTime > 0
+        else { return 1 }
+        
+        print(CGFloat(currentTime / duration))
+        return CGFloat(currentTime / duration)
+    }
+    
     private var cancellables = Set<AnyCancellable>()
     
     var isPlaying: Bool {
@@ -42,7 +53,8 @@ final class PlayerDataModel: ObservableObject {
         // 현재 init에 오래 걸리는 Task가 존재
         // 이럴 경우
     }
-    func setPlayer(with url: URL) {
+    
+    private func setPlayer(with url: URL) {
         let options = [AVURLAssetPreferPreciseDurationAndTimingKey: true] // 정확한 길이와 타이밍 정보를 요청
         let asset = AVURLAsset(url: url, options: options)
         
@@ -85,6 +97,7 @@ final class PlayerDataModel: ObservableObject {
             .receive(on: RunLoop.main)
             .sink { [weak self] _ in
                 self?.isCurrentItemFinished = true
+                self?.playerTimeState = .ended
             }
             .store(in: &cancellables)
         

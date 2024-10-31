@@ -5,13 +5,14 @@
 //  Created by 이재훈 on 10/17/24.
 //
 
+import AVFoundation
 import SwiftUI
 
 struct ControllerView: View {
     enum ControllerViewAction {
         case lockButtonTapped
         case audioButtonTapped
-        case rewindButtonTapped
+        case backwardButtonTapped
         case playButtonTapped
         case forwardButtonTapped
         case speedButtonTapped
@@ -60,7 +61,7 @@ struct ControllerView: View {
             Spacer()
             HStack(spacing: 42) {
                 Button {
-                    handleAction(.rewindButtonTapped)
+                    handleAction(.backwardButtonTapped)
                 } label: {
                     let imageSize: CGFloat = isLandscape ? 48 : 32
                     let size: CGFloat = isLandscape ? 24 : 16
@@ -93,6 +94,22 @@ struct ControllerView: View {
                         .styled(size: size, tintColor: .white)
                         .frame(width: imageSize, height: imageSize)
                 }
+            }
+            Spacer()
+            HStack(spacing: 0) {
+                GeometryReader { geomerty in
+                    ZStack(alignment: .leading) {
+                        Rectangle()
+                            .fill(Color.white.opacity(0.5))
+                            .clipShape(.capsule)
+                        Rectangle()
+                            .fill(Color.white)
+                            .clipShape(.capsule)
+                            .frame(width: geomerty.size.width * playerDataModel.progressRatio)
+                    }
+                    .frame(width: geomerty.size.width)
+                }
+                .frame(height: 4)
             }
             Spacer()
             HStack(alignment: .center, spacing: 42) {
@@ -129,7 +146,7 @@ struct ControllerView: View {
             playerDataModel.state.mode = .audioMode
             
         case .forwardButtonTapped:
-            controllerDisplayState = .main(.other)
+            skipForward(by: 10)
             
         case .playButtonTapped:
             if playerDataModel.isCurrentItemFinished {
@@ -141,8 +158,8 @@ struct ControllerView: View {
             playerDataModel.player?.pause() :
             playerDataModel.player?.play()
             
-        case .rewindButtonTapped:
-            controllerDisplayState = .main(.other)
+        case .backwardButtonTapped:
+            skipBackward(by: 10)
             
         case .speedButtonTapped:
             playerDataModel.state.speed = [.fast, .normal, .slow].randomElement()!
@@ -157,5 +174,26 @@ struct ControllerView: View {
         playerDataModel.showControllerSubject.send(true)
     }
     
+    private func seek(to time: CMTime) {
+        if playerDataModel.playerTimeState == .ended { return }
+        
+        playerDataModel.player?.seek(to: time, toleranceBefore: .zero, toleranceAfter: .zero) { _ in
+        }
+    }
     
+    private func seek(to position: TimeInterval) {
+        seek(to: CMTime(seconds: position, preferredTimescale: 1))
+    }
+    
+    private func skipBackward(by interval: TimeInterval) {
+        guard let currentTime = playerDataModel.player?.currentTime()
+        else { return }
+        seek(to: currentTime - CMTime(seconds: interval, preferredTimescale: 1))
+    }
+    
+    private func skipForward(by interval: TimeInterval) {
+        guard let currentTime = playerDataModel.player?.currentTime()
+        else { return }
+        seek(to: currentTime + CMTime(seconds: interval, preferredTimescale: 1))
+    }
 }

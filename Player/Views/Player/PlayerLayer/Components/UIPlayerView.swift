@@ -73,7 +73,7 @@ final class UIPlayerView: UIView {
         
         nowPlayingInfo[MPMediaItemPropertyTitle] = "콘텐츠 제목"
         nowPlayingInfo[MPMediaItemPropertyArtist] = "콘텐츠 아티스트"
-    
+        MPNowPlayingInfoCenter.default().nowPlayingInfo = nowPlayingInfo
         
         remoteCommandCenter.playCommand.addTarget { [weak self] _ in
             self?.player?.play()
@@ -130,11 +130,15 @@ final class UIPlayerView: UIView {
 
 private extension UIPlayerView {
     func disablePip() {
-        pipController?.canStartPictureInPictureAutomaticallyFromInline = false
+        self.pipController = nil
     }
     
     func enablePip() {
-        pipController?.canStartPictureInPictureAutomaticallyFromInline = true
+        if AVPictureInPictureController.isPictureInPictureSupported()
+            && pipController == nil {
+            pipController = AVPictureInPictureController(playerLayer: playerLayer)
+            pipController?.canStartPictureInPictureAutomaticallyFromInline = true
+        }
     }
     
     func enableAudioMode() {
@@ -147,6 +151,7 @@ private extension UIPlayerView {
     
     func disableAudioMode() {
         playerLayer.player = player
+        
         remoteCommandCenter.playCommand.isEnabled = false
         remoteCommandCenter.pauseCommand.isEnabled = false
         //UIApplication.shared.endReceivingRemoteControlEvents() // 공유된 객체를 사용할 때는 호출할 필요 없음
@@ -154,7 +159,7 @@ private extension UIPlayerView {
     
     func setupAudioSession() {
         do {
-            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .moviePlayback)
+            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .moviePlayback, options: [.duckOthers])
             try AVAudioSession.sharedInstance().setActive(true)
         }
         catch {

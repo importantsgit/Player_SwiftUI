@@ -83,10 +83,10 @@ struct PlayerView: UIViewRepresentable {
     func makeUIView(context: Context) -> UIPlayerView {
         let view = UIPlayerView(state: state)
         view.player = player
-        view.pipController?.delegate = context.coordinator
         view.setupPip()
         view.setupRemoteCommands()
         view.setMode(.pipMode) // mode default => PIP
+        view.pipController?.delegate = context.coordinator
         
         return view
     }
@@ -101,6 +101,7 @@ struct PlayerView: UIViewRepresentable {
         }
         // State Update
         uiView.updateState(state)
+        uiView.pipController?.delegate = context.coordinator
     }
     
     // UIKit의 Delegate Pattern을 SwiftUI에서 사용할 수 있게 해주는 브릿지 역할
