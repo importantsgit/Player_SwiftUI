@@ -25,6 +25,10 @@ extension UIApplication {
     static var currentWindow: UIWindow? {
         currentScene?.windows.first(where: { $0.isKeyWindow })
     }
+    
+    static var currentWindowSize: CGRect? {
+        currentWindow?.frame
+    }
 }
 
 

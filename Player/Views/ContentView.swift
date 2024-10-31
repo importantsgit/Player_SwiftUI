@@ -22,26 +22,35 @@ struct ContentView: View {
     var body: some View {
         let isLandscape = currentOrientation.isLandscape
         // 자동으로 Spacing이 들어가기 때문에 0을 입력
-        VStack(spacing: 0) {
-            NavigationController(title: "Video")
-                .hidden(isLandscape)
-            
-            playerContainerView(
-                currentOrientation: $currentOrientation
-            )
-                .frame(height: viewSize.width*(9/16))
-                .environmentObject(playerDataModel)
-            // 해당 뷰가 있어야지 볼륨 컨트롤 시, 시스템 볼륨 컨트롤 UI가 안보임
-            // FIXME: 현재 ViewBuilder로 인해 해당 ContainerView 내 PlayerView
-                .hideSystemVolumeView(isHidden: isLandscape == false)
-            
-            ContentDetailView()
-                .hidden(isLandscape)
+        
+        GeometryReader { geometry in
+            VStack(spacing: 0) {
+                if isLandscape == false {
+                    NavigationController(title: "Video")
+                        .background(.white)
+                }
+                
+                playerContainerView(
+                    currentOrientation: $currentOrientation
+                )
+                .frame(height: isLandscape == false ? geometry.size.width*(9/16) : geometry.size.height)
+                    .environmentObject(playerDataModel)
+                    .task {
+                        
+                    }
+
+                // 해당 뷰가 있어야지 볼륨 컨트롤 시, 시스템 볼륨 컨트롤 UI가 안보임
+                // FIXME: 현재 ViewBuilder로 인해 해당 ContainerView 내 PlayerView
+                    .hideSystemVolumeView(isHidden: isLandscape == false)
+                
+                if isLandscape == false {
+                    ContentDetailView()
+                }
+            }
         }
-        .onReadSize { viewSize = $0 }
         .detectOrientation($currentOrientation)
         .animation(.easeInOut, value: isLandscape)
-        .ignoresSafeArea(.all, edges: isLandscape ? [.bottom] : [])
+        .ignoresSafeArea(.all, edges: isLandscape ? .all : [])
     }
 }
 

@@ -12,7 +12,6 @@ import SwiftUI
 final class PlayerDataModel: ObservableObject {
     @Published var player: AVPlayer?
     @Published var state: UIPlayerView.PlayerState
-    
     @Published var isBuffering: Bool = false                    // 버퍼링 여부
     @Published var isInitialized: Bool = false                  // 초기화 여부
     @Published var isCurrentItemFinished: Bool = false          // 영상이 끝났는지에 대한 여부
@@ -40,12 +39,14 @@ final class PlayerDataModel: ObservableObject {
     init(url: URL?, state: UIPlayerView.PlayerState = .init()) {
         self.state = state
         if let url { setPlayer(with: url) }
+        // 현재 init에 오래 걸리는 Task가 존재
+        // 이럴 경우
     }
-    private func setPlayer(with url: URL) {
+    func setPlayer(with url: URL) {
         let options = [AVURLAssetPreferPreciseDurationAndTimingKey: true] // 정확한 길이와 타이밍 정보를 요청
         let asset = AVURLAsset(url: url, options: options)
         
-        Task.detached {
+        Task {
             do {
                 // 해당 Key 값을 이용하기 위해서 iOS 16.0 이후부터 concurrency 사용
                 // playable: 에셋이 재생 가능한지 판단 재생 가능하다면 재생 로직을 실행하고, 그렇지 않다면 사용자에게 적절한 메시지를 표시
@@ -88,6 +89,10 @@ final class PlayerDataModel: ObservableObject {
             .store(in: &cancellables)
         
         player?.publisher(for: \.timeControlStatus)
+        // - Publishing changes from within view updates is not allowed, this will cause undefined behavior.
+        // 뷰 업데이트를 Main Thread에서 진행
+        // 현재 로직들은 다른 Thread에서 진행 따라서 ViewUpdate와 Publishing간의 충돌이 발생할 수 있음
+        // 따라서 MainThread에서 sink하도록 설정 (동기적으로 실행)
             .receive(on: RunLoop.main)
             .sink { [weak self] status in
                 switch status {
@@ -97,10 +102,6 @@ final class PlayerDataModel: ObservableObject {
                     self?.playerTimeState = .buffering
                 case .playing:
                     self?.playerTimeState = .playing
-                    // FIXME: Publishing changes from within view updates is not allowed, this will cause undefined behavior.
-                    // 뷰 업데이트를 Main Thread에서 진행
-                    // 현재 로직들은 다른 Thread에서 진행 따라서 ViewUpdate와 Publishing간의 충돌이 발생할 수 있음
-                    // 따라서 MainThread에서 sink하도록 설정 (동기적으로 실행)
                 @unknown default:
                     self?.playerTimeState = .pause
                 }

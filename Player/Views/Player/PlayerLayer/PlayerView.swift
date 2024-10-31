@@ -116,7 +116,23 @@ struct PlayerView: UIViewRepresentable {
         }
         
         func pictureInPictureControllerWillStartPictureInPicture(_ pictureInPictureController: AVPictureInPictureController) {
-            print("pictureInPictureControllerWillStartPictureInPicture")
+            print("📺 [VideoPlayer][pip] willStart")
+        }
+        func pictureInPictureControllerDidStartPictureInPicture(_ pictureInPictureController: AVPictureInPictureController) {
+            print("📺 [VideoPlayer][pip] didStart")
+        }
+        func pictureInPictureControllerDidStopPictureInPicture(_ pictureInPictureController: AVPictureInPictureController) {
+            print("📺 [VideoPlayer][pip] didStop")
+        }
+        func pictureInPictureControllerWillStopPictureInPicture(_ pictureInPictureController: AVPictureInPictureController) {
+            print("📺 [VideoPlayer][pip] willStop")
+        }
+        func pictureInPictureController(_ pictureInPictureController: AVPictureInPictureController, restoreUserInterfaceForPictureInPictureStopWithCompletionHandler completionHandler: @escaping (Bool) -> Void) {
+            print("📺 [VideoPlayer][pip] complete pip")
+            completionHandler(true)
+        }
+        func pictureInPictureController(_ pictureInPictureController: AVPictureInPictureController, failedToStartPictureInPictureWithError error: Error) {
+            print("📺 [VideoPlayer][pip] failedToStartPictureInPictureWithError err: \(error.localizedDescription)")
         }
     }
 }

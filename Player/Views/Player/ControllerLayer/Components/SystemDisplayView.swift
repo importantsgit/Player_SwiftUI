@@ -19,7 +19,7 @@ struct SystemDisplayView: View {
             HStack {
                 if isShowBrightnessBar {
                     Spacer()
-                        .frame(width: 32)
+                        .frame(width: 64)
                     
                     VStack(spacing: 10) {
                         Image(systemName: "lightbulb.max.fill")
@@ -65,11 +65,17 @@ struct SystemDisplayView: View {
             }
             Spacer()
         }
-        .onReceive(systemDataModel.$brightnessValue) { _ in
+        .onReceive(
+            systemDataModel.$brightnessValue
+                .dropFirst()
+        ) { _ in
             isShowBrightnessBar = true
             isShowVolumeBar = false
         }
-        .onReceive(systemDataModel.$volumeValue) { _ in
+        .onReceive(
+            systemDataModel.$volumeValue
+                .dropFirst()
+        ) { _ in
             isShowBrightnessBar = false
             isShowVolumeBar = true
         }

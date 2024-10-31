@@ -67,9 +67,6 @@ extension View {
         )
         .onPreferenceChange(SizePreferenceKey.self, perform: perform)
     }
-    
-    
-    
 }
 
 // MARK: - Preference Key for Size
@@ -131,6 +128,6 @@ extension Image {
             .resizable()
             .frame(width: size, height: size)
             .foregroundColor(tintColor)
-        
     }
 }
+

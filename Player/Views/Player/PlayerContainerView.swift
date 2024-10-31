@@ -60,6 +60,11 @@ struct playerContainerView: View {
                 print("dragGesture")
                 guard isLandscape && controllerDisplayState.isMain
                 else { return }
+
+                guard let currentWindowSize = UIApplication.currentWindowSize,
+                      (currentWindowSize.minY + 40)...(currentWindowSize.maxY - 40) ~= state.startLocation.y
+                else { return }
+                    
                 playerDataModel.showControllerSubject.send(true)
                 controllerDisplayState = .main(.system)
                 
@@ -99,51 +104,54 @@ struct playerContainerView: View {
         let combineGesture = dragGesture.exclusively(
             before: tapGesture
         )
-        
-        ProgressView("Loading...")
-            .hidden(playerDataModel.playerTimeState == .buffering || playerDataModel.isInitialized == false)
-        
-        PlayerView(
-            player: $playerDataModel.player,
-            state: $playerDataModel.state
-        )
-            .gesture(combineGesture)
-            .overlay {
-                // MARK: if 조건문을 제거해도 뷰가 재갱신되어 State가 초기화됨
-                ControllerContainerView(
-                    controllerDisplayState: $controllerDisplayState
-                )
-                .environmentObject(systemDataModel)
-                .hidden(isShowController == false)
-                .gesture(tapGesture)
-            }
-            .onReadSize { viewSize = $0 }
-            // Timer 로직
-            .onReceive(
-                playerDataModel.showControllerSubject
-            ) { isShow in
-                isShowController = isShow
-                
-                if isShow == false && controllerDisplayState.isMain {
-                    // FIXME: isShow가 false가 되는 순간에 기본 컨트롤러 UI로 바뀌는데, 애니메이션이 0.2초가 걸려 기본 컨트롤러 UI가 살짝 보이는 이슈 발생
-                    controllerDisplayState = .main(.normal)
+        ZStack {
+            PlayerView(
+                player: $playerDataModel.player,
+                state: $playerDataModel.state
+            )
+                .gesture(combineGesture)
+                .overlay {
+                    ZStack {
+                        ControllerContainerView(
+                            controllerDisplayState: $controllerDisplayState,
+                            currentOrientation: $currentOrientation
+                        )
+                        .environmentObject(systemDataModel)
+                        .hidden(isShowController == false)
+                        .gesture(tapGesture)
+                    }
                 }
-            }
-            .onReceive(
-                playerDataModel.timerPublisher
-            ) { _ in
-                // showControllerSubject.send(true)인 경우만 receive
-                // 5초 후 플레이어를 닫기 위해
-                isShowController = false
-                
-                if controllerDisplayState.isMain {
-                    controllerDisplayState = .main(.normal)
+                .onReadSize { viewSize = $0 }
+                // Timer 로직
+                .onReceive(
+                    playerDataModel.showControllerSubject
+                ) { isShow in
+                    isShowController = isShow
+                    
+                    if isShow == false && controllerDisplayState.isMain {
+                        // FIXME: isShow가 false가 되는 순간에 기본 컨트롤러 UI로 바뀌는데, 애니메이션이 0.2초가 걸려 기본 컨트롤러 UI가 살짝 보이는 이슈 발생
+                        controllerDisplayState = .main(.normal)
+                    }
                 }
-            }
-            .animation(.easeInOut(duration: 0.2), value: isShowController)
-        
-        if controllerDisplayState == .audio {
+                .onReceive(
+                    playerDataModel.timerPublisher
+                ) { _ in
+                    // showControllerSubject.send(true)인 경우만 receive
+                    // 5초 후 플레이어를 닫기 위해
+                    isShowController = false
+                    
+                    if controllerDisplayState.isMain {
+                        controllerDisplayState = .main(.normal)
+                    }
+                }
+            // FIXME: isShow가 false가 되는 순간에 기본 컨트롤러 UI로 바뀌는데, 애니메이션이 0.2초가 걸려 기본 컨트롤러 UI가 살짝 보이는 이슈 발생
+                // .animation(.easeInOut(duration: 0.2), value: isShowController)
+            
             AudioModeView(controllerDisplayState: $controllerDisplayState)
+                .hidden(controllerDisplayState != .audio)
+            
+            ProgressView("Loading...")
+                .hidden(playerDataModel.playerTimeState == .buffering || playerDataModel.isInitialized == false)
         }
     }
 }

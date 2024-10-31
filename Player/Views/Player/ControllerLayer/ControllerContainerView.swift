@@ -22,17 +22,13 @@ struct ControllerContainerView: View {
         }
         
         var isMain: Bool {
-            if case .main = self {
-                return true
-            }
-            else {
-                return false
-            }
+            if case .main(_) = self { return true }
+            return false
         }
     }
     
-    @State var isLockController: Bool = false
     @Binding var controllerDisplayState: ControllerDisplayState
+    @Binding var currentOrientation: UIInterfaceOrientation
     @EnvironmentObject var systemDataModel: SystemDataModel
     @State private var cancellables = Set<AnyCancellable>()
     
@@ -57,7 +53,8 @@ struct ControllerContainerView: View {
             switch state {
             case .normal:
                 ControllerView(
-                    controllerDisplayState: $controllerDisplayState
+                    controllerDisplayState: $controllerDisplayState,
+                    currentOrientation: $currentOrientation
                 )
             case .system:
                 SystemDisplayView()
@@ -72,3 +69,4 @@ struct ControllerContainerView: View {
         }
     }
 }
+

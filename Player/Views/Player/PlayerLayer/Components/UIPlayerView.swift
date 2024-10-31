@@ -53,6 +53,7 @@ final class UIPlayerView: UIView {
     init(state: PlayerState){
         self.state = state
         super.init(frame: UIApplication.currentWindow?.frame ?? .zero)
+        setupAudioSession()
     }
     
     required init?(coder: NSCoder) {
@@ -62,10 +63,18 @@ final class UIPlayerView: UIView {
     func setupPip() {
         if AVPictureInPictureController.isPictureInPictureSupported() {
             pipController = AVPictureInPictureController(playerLayer: playerLayer)
+            pipController?.requiresLinearPlayback = true
         }
     }
     
     func setupRemoteCommands() {
+        let center = MPNowPlayingInfoCenter.default()
+        var nowPlayingInfo = center.nowPlayingInfo ?? [String: Any]()
+        
+        nowPlayingInfo[MPMediaItemPropertyTitle] = "콘텐츠 제목"
+        nowPlayingInfo[MPMediaItemPropertyArtist] = "콘텐츠 아티스트"
+    
+        
         remoteCommandCenter.playCommand.addTarget { [weak self] _ in
             self?.player?.play()
             return .success
@@ -98,45 +107,54 @@ final class UIPlayerView: UIView {
             player?.currentItem?.preferredMaximumResolution = newState.videoQuality.resolution
             player?.currentItem?.preferredPeakBitRate = newState.videoQuality.bitrate
         }
+        
+        state = newState
     }
     
     func setMode(_ mode: PlayerMode) {
-        setupAudioSession(mode: mode)
         switch mode {
         case .audioMode:
-            disablePip()
             enableAudioMode()
+            disablePip()
         case .pipMode:
-            enablePip()
             disableAudioMode()
+            enablePip()
         }
+    }
+    
+    deinit {
+        self.disableAudioMode()
+        self.disablePip()
     }
 }
 
 private extension UIPlayerView {
     func disablePip() {
-        pipController?.stopPictureInPicture()
+        pipController?.canStartPictureInPictureAutomaticallyFromInline = false
     }
     
     func enablePip() {
-        pipController?.startPictureInPicture()
+        pipController?.canStartPictureInPictureAutomaticallyFromInline = true
     }
     
     func enableAudioMode() {
         playerLayer.player = nil
+        
         remoteCommandCenter.playCommand.isEnabled = true
         remoteCommandCenter.pauseCommand.isEnabled = true
+        // UIApplication.shared.beginReceivingRemoteControlEvents() // 공유된 객체를 사용할 때는 호출할 필요 없음
     }
     
     func disableAudioMode() {
         playerLayer.player = player
         remoteCommandCenter.playCommand.isEnabled = false
         remoteCommandCenter.pauseCommand.isEnabled = false
+        //UIApplication.shared.endReceivingRemoteControlEvents() // 공유된 객체를 사용할 때는 호출할 필요 없음
     }
     
-    func setupAudioSession(mode: PlayerMode) {
+    func setupAudioSession() {
         do {
-            try AVAudioSession.sharedInstance().setCategory(.playback, mode: mode == .pipMode ? .moviePlayback : .default)
+            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .moviePlayback)
             try AVAudioSession.sharedInstance().setActive(true)
         }
         catch {
