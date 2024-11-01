@@ -48,12 +48,10 @@ final class UIPlayerView: UIView {
     }
     
     var pipController: AVPictureInPictureController?
-    private let remoteCommandCenter = MPRemoteCommandCenter.shared()
     
     init(state: PlayerState){
         self.state = state
         super.init(frame: UIApplication.currentWindow?.frame ?? .zero)
-        setupAudioSession()
     }
     
     required init?(coder: NSCoder) {
@@ -75,12 +73,12 @@ final class UIPlayerView: UIView {
         nowPlayingInfo[MPMediaItemPropertyArtist] = "콘텐츠 아티스트"
         MPNowPlayingInfoCenter.default().nowPlayingInfo = nowPlayingInfo
         
-        remoteCommandCenter.playCommand.addTarget { [weak self] _ in
+        MPRemoteCommandCenter.shared().playCommand.addTarget { [weak self] _ in
             self?.player?.play()
             return .success
         }
         
-        remoteCommandCenter.pauseCommand.addTarget { [weak self] _ in
+        MPRemoteCommandCenter.shared().pauseCommand.addTarget { [weak self] _ in
             self?.player?.pause()
             return .success
         }
@@ -112,6 +110,9 @@ final class UIPlayerView: UIView {
     }
     
     func setMode(_ mode: PlayerMode) {
+        // nil 처리해줘야지 백그라운드에서 오디오 모드 재생 가능
+        playerLayer.player = mode == .audioMode ? nil : player
+        
         switch mode {
         case .audioMode:
             enableAudioMode()
@@ -119,6 +120,16 @@ final class UIPlayerView: UIView {
         case .pipMode:
             disableAudioMode()
             enablePip()
+        }
+    }
+    
+    func setupAudioSession() {
+        do {
+            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default)
+            try AVAudioSession.sharedInstance().setActive(true)
+        }
+        catch {
+            print("error: \(error.localizedDescription)")
         }
     }
     
@@ -142,28 +153,16 @@ private extension UIPlayerView {
     }
     
     func enableAudioMode() {
-        playerLayer.player = nil
-        
-        remoteCommandCenter.playCommand.isEnabled = true
-        remoteCommandCenter.pauseCommand.isEnabled = true
+        MPRemoteCommandCenter.shared().playCommand.isEnabled = true
+        MPRemoteCommandCenter.shared().pauseCommand.isEnabled = true
         // UIApplication.shared.beginReceivingRemoteControlEvents() // 공유된 객체를 사용할 때는 호출할 필요 없음
     }
     
     func disableAudioMode() {
-        playerLayer.player = player
+        playerLayer.isHidden = false
         
-        remoteCommandCenter.playCommand.isEnabled = false
-        remoteCommandCenter.pauseCommand.isEnabled = false
-        //UIApplication.shared.endReceivingRemoteControlEvents() // 공유된 객체를 사용할 때는 호출할 필요 없음
-    }
-    
-    func setupAudioSession() {
-        do {
-            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .moviePlayback, options: [.duckOthers])
-            try AVAudioSession.sharedInstance().setActive(true)
-        }
-        catch {
-            print("error: \(error.localizedDescription)")
-        }
+        MPRemoteCommandCenter.shared().playCommand.isEnabled = false
+        MPRemoteCommandCenter.shared().pauseCommand.isEnabled = false
+        // UIApplication.shared.endReceivingRemoteControlEvents() // 공유된 객체를 사용할 때는 호출할 필요 없음
     }
 }

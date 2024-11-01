@@ -81,13 +81,13 @@ struct PlayerView: UIViewRepresentable {
     @Binding var state: UIPlayerView.PlayerState
     
     func makeUIView(context: Context) -> UIPlayerView {
-        let view = UIPlayerView(state: state)
-        view.player = player
-        view.setupPip()
-        view.setupRemoteCommands()
-        view.setMode(.pipMode) // mode default => PIP
-        view.pipController?.delegate = context.coordinator
         
+        let view = UIPlayerView(state: state)
+        view.setupAudioSession()
+        
+        view.setupRemoteCommands()
+        view.setMode(.pipMode)
+
         return view
     }
     
@@ -95,13 +95,15 @@ struct PlayerView: UIViewRepresentable {
     // 관련된 상태 변수가 변했을 경우
     // 앱 생명주기 이벤트 발생 시
     func updateUIView(_ uiView: UIPlayerView, context: Context) {
+        // FIXME: - 플레이어 갱신 문제 > 오디오 모드에서 문제 생김
         if uiView.player !== player {
-            print("player is changed")
             uiView.player = player
         }
+        
+        // uiView.pipController?.delegate = context.coordinator
+        
         // State Update
         uiView.updateState(state)
-        uiView.pipController?.delegate = context.coordinator
     }
     
     // UIKit의 Delegate Pattern을 SwiftUI에서 사용할 수 있게 해주는 브릿지 역할
