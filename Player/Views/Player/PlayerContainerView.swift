@@ -129,7 +129,6 @@ struct playerContainerView: View {
                     isShowController = isShow
                     
                     if isShow == false && controllerDisplayState.isMain {
-                        // FIXME: isShow가 false가 되는 순간에 기본 컨트롤러 UI로 바뀌는데, 애니메이션이 0.2초가 걸려 기본 컨트롤러 UI가 살짝 보이는 이슈 발생
                         controllerDisplayState = .main(.normal)
                     }
                 }
@@ -144,7 +143,6 @@ struct playerContainerView: View {
                         controllerDisplayState = .main(.normal)
                     }
                 }
-            // FIXME: isShow가 false가 되는 순간에 기본 컨트롤러 UI로 바뀌는데, 애니메이션이 0.2초가 걸려 기본 컨트롤러 UI가 살짝 보이는 이슈 발생
                 // .animation(.easeInOut(duration: 0.2), value: isShowController)
             
             AudioModeView(
