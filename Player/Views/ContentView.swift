@@ -12,11 +12,13 @@ import MediaPlayer
 struct ContentView: View {
     @State var currentOrientation = UIApplication.orientation
     @State private var viewSize: CGSize = .zero
-    @StateObject var playerDataModel: PlayerDataModel
+    @StateObject var playerDataModel = PlayerViewModel()
     
-    init(url: URL? = nil) {
+    let url: URL
+    
+    init(url: URL) {
         // 뷰의 생명주기 동안 한번만 초기화되어야 하며, 직접 할당할 수 없음
-        _playerDataModel = StateObject(wrappedValue: .init(url: url))
+        self.url = url
     }
     
     var body: some View {
@@ -51,6 +53,14 @@ struct ContentView: View {
         .detectOrientation($currentOrientation)
         .animation(.easeInOut, value: isLandscape)
         .ignoresSafeArea(.all, edges: isLandscape ? .all : [])
+        .task {
+            do {
+                try await playerDataModel.setPlayer(with: url)
+            }
+            catch {
+                
+            }
+        }
     }
 }
 
@@ -97,5 +107,5 @@ struct ContentDetailView: View {
 }
 
 #Preview {
-    ContentView()
+    ContentView(url: URL(string: "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4")!)
 }

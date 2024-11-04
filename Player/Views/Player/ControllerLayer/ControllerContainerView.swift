@@ -18,7 +18,6 @@ struct ControllerContainerView: View {
         enum MainDisplayState: Equatable {
             case normal
             case system
-            case other
         }
         
         var isMain: Bool {
@@ -58,8 +57,6 @@ struct ControllerContainerView: View {
                 )
             case .system:
                 SystemDisplayView()
-            case .other:
-                OtherControllerView(title: "two")
             }
         case .lock:
             LockView(controllerDisplayState: $controllerDisplayState)

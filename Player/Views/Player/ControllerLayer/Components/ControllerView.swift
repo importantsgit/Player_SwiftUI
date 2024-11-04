@@ -19,7 +19,8 @@ struct ControllerView: View {
         case qualityButtonTapped
         case gravityButtonTapped
     }
-    @EnvironmentObject var playerDataModel: PlayerDataModel
+    
+    @EnvironmentObject var playerViewModel: PlayerViewModel
     @Binding var controllerDisplayState: ControllerContainerView.ControllerDisplayState
     @Binding var currentOrientation: UIInterfaceOrientation
     
@@ -78,7 +79,7 @@ struct ControllerView: View {
                     let size: CGFloat = isLandscape ? 24 : 16
                     
                     Image(
-                        systemName: playerDataModel.playerTimeState == .playing ? "pause" : "play"
+                        systemName: playerViewModel.playerTimeState == .playing ? "pause" : "play"
                     )
                     .styled(size: size, tintColor: .white)
                     .frame(width: imageSize, height: imageSize)
@@ -105,7 +106,7 @@ struct ControllerView: View {
                         Rectangle()
                             .fill(Color.white)
                             .clipShape(.capsule)
-                            .frame(width: geomerty.size.width * playerDataModel.progressRatio)
+                            .frame(width: geomerty.size.width * playerViewModel.progressRatio)
                     }
                     .frame(width: geomerty.size.width)
                 }
@@ -142,58 +143,31 @@ struct ControllerView: View {
             controllerDisplayState = .lock
             
         case .audioButtonTapped:
+            playerViewModel.handleAction(.audioButtonTapped)
             controllerDisplayState = .audio
-            playerDataModel.state.mode = .audioMode
             
         case .forwardButtonTapped:
-            skipForward(by: 10)
+            playerViewModel.handleAction(.seekForward(10))
             
         case .playButtonTapped:
-            if playerDataModel.isCurrentItemFinished {
-                playerDataModel.player?.seek(to: .zero)
-                return
-            }
-            
-            playerDataModel.playerTimeState == .playing ?
-            playerDataModel.player?.pause() :
-            playerDataModel.player?.play()
+            playerViewModel.handleAction(.playButtonTapped)
             
         case .backwardButtonTapped:
-            skipBackward(by: 10)
+            playerViewModel.handleAction(.seekBackward(10))
             
         case .speedButtonTapped:
-            playerDataModel.state.speed = [.fast, .normal, .slow].randomElement()!
+            let speed: PlayerSpeed = [.fast, .normal, .slow].randomElement()!
+            playerViewModel.handleAction(.speedButtonTapped(speed))
             
         case .qualityButtonTapped:
-            playerDataModel.state.videoQuality = [.high, .low, .medium].randomElement()!
+            let videoQuality: PlayerQualityPreset = [.high, .low, .medium].randomElement()!
+            playerViewModel.handleAction(.qualityButtonTapped(videoQuality))
             
         case .gravityButtonTapped:
-            playerDataModel.state.gravity = [.fill, .fit, .stretch].randomElement()!
+            let gravity: PlayerGravity = [.fill, .fit, .stretch].randomElement()!
+            playerViewModel.handleAction(.gravityButtonTapped(gravity))
         }
         
-        playerDataModel.showControllerSubject.send(true)
-    }
-    
-    private func seek(to time: CMTime) {
-        if playerDataModel.playerTimeState == .ended { return }
-        
-        playerDataModel.player?.seek(to: time, toleranceBefore: .zero, toleranceAfter: .zero) { _ in
-        }
-    }
-    
-    private func seek(to position: TimeInterval) {
-        seek(to: CMTime(seconds: position, preferredTimescale: 1))
-    }
-    
-    private func skipBackward(by interval: TimeInterval) {
-        guard let currentTime = playerDataModel.player?.currentTime()
-        else { return }
-        seek(to: currentTime - CMTime(seconds: interval, preferredTimescale: 1))
-    }
-    
-    private func skipForward(by interval: TimeInterval) {
-        guard let currentTime = playerDataModel.player?.currentTime()
-        else { return }
-        seek(to: currentTime + CMTime(seconds: interval, preferredTimescale: 1))
+        playerViewModel.showControllerSubject.send(true)
     }
 }

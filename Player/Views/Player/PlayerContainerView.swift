@@ -13,7 +13,7 @@ import MediaPlayer
 
 struct playerContainerView: View {
     
-    @EnvironmentObject var playerDataModel: PlayerDataModel
+    @EnvironmentObject var playerViewModel: PlayerViewModel
     
     @StateObject var systemDataModel: SystemDataModel = .init()
     
@@ -23,7 +23,7 @@ struct playerContainerView: View {
     
     @State private var viewSize: CGSize = .zero
     
-    @State private var playerState: UIPlayerView.PlayerState = .init()
+    @State private var playerState: PlayerViewModel.PlayerState = .init(videoQuality: .low)
     
     @State private var gestureStart: Bool = false
     
@@ -32,7 +32,8 @@ struct playerContainerView: View {
     @Binding var currentOrientation: UIInterfaceOrientation
     
     init(
-        currentOrientation: Binding<UIInterfaceOrientation>) {
+        currentOrientation: Binding<UIInterfaceOrientation>
+    ) {
         self._currentOrientation = currentOrientation
     }
     
@@ -41,7 +42,7 @@ struct playerContainerView: View {
         let isLandscape = currentOrientation.isLandscape
         let tapGesture = SpatialTapGesture()
             .onEnded { state in
-                playerDataModel.showControllerSubject.send(isShowController == false)
+                playerViewModel.showControllerSubject.send(isShowController == false)
                 
                 
                 let halfWidth = viewSize.width / 2
@@ -65,7 +66,7 @@ struct playerContainerView: View {
                       (currentWindowSize.minY + 40)...(currentWindowSize.maxY - 40) ~= state.startLocation.y
                 else { return }
                     
-                playerDataModel.showControllerSubject.send(true)
+                playerViewModel.showControllerSubject.send(true)
                 controllerDisplayState = .main(.system)
                 
                 let halfWidth = viewSize.width / 2
@@ -98,17 +99,14 @@ struct playerContainerView: View {
                 else {
                     systemDataModel.volumeValue.origin = systemDataModel.volumeValue.changed
                 }
-                playerDataModel.showControllerSubject.send(false)
+                playerViewModel.showControllerSubject.send(false)
             }
         
         let combineGesture = dragGesture.exclusively(
             before: tapGesture
         )
         ZStack {
-            PlayerView(
-                player: $playerDataModel.player,
-                state: $playerDataModel.state
-            )
+            PlayerView()
                 .gesture(combineGesture)
                 .overlay {
                     ZStack {
@@ -124,7 +122,7 @@ struct playerContainerView: View {
                 .onReadSize { viewSize = $0 }
                 // Timer 로직
                 .onReceive(
-                    playerDataModel.showControllerSubject
+                    playerViewModel.showControllerSubject
                 ) { isShow in
                     isShowController = isShow
                     
@@ -133,7 +131,7 @@ struct playerContainerView: View {
                     }
                 }
                 .onReceive(
-                    playerDataModel.timerPublisher
+                    playerViewModel.timerPublisher
                 ) { _ in
                     // showControllerSubject.send(true)인 경우만 receive
                     // 5초 후 플레이어를 닫기 위해
@@ -152,13 +150,13 @@ struct playerContainerView: View {
                 .hidden(controllerDisplayState != .audio)
             
             ProgressView("Loading...")
-                .hidden(playerDataModel.playerTimeState == .buffering || playerDataModel.isInitialized == false)
+                .hidden(playerViewModel.playerTimeState == .buffering || playerViewModel.isInitialized == false)
         }
     }
 }
 
 #Preview {
     playerContainerView(currentOrientation: .constant(.portrait))
-        .environmentObject(PlayerDataModel(url: nil))
+        .environmentObject(PlayerViewModel())
 }
 

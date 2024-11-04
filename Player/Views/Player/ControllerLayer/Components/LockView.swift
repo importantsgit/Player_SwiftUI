@@ -11,7 +11,7 @@ struct LockView: View {
     enum ControllerViewAction {
         case unlockButtonTapped
     }
-    @EnvironmentObject var playerDataModel: PlayerDataModel
+    @EnvironmentObject var playerViewModel: PlayerViewModel
     @Binding var controllerDisplayState: ControllerContainerView.ControllerDisplayState
     
     var body: some View {
@@ -43,7 +43,7 @@ struct LockView: View {
             withAnimation {
                 controllerDisplayState = .main(.normal)
             }
-            playerDataModel.showControllerSubject.send(true)
+            playerViewModel.showControllerSubject.send(true)
         }
     }
 }
