@@ -12,7 +12,7 @@ import MediaPlayer
 struct ContentView: View {
     @State var currentOrientation = UIApplication.orientation
     @State private var viewSize: CGSize = .zero
-    @StateObject var playerDataModel = PlayerViewModel()
+    @StateObject var playerManager = PlayerManager()
     
     let url: URL
     
@@ -36,7 +36,7 @@ struct ContentView: View {
                     currentOrientation: $currentOrientation
                 )
                 .frame(height: isLandscape == false ? geometry.size.width*(9/16) : geometry.size.height)
-                    .environmentObject(playerDataModel)
+                    .environmentObject(playerManager)
                     .task {
                         
                     }
@@ -55,7 +55,7 @@ struct ContentView: View {
         .ignoresSafeArea(.all, edges: isLandscape ? .all : [])
         .task {
             do {
-                try await playerDataModel.setPlayer(with: url)
+                try await playerManager.setPlayer(with: url)
             }
             catch {
                 

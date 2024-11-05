@@ -16,7 +16,7 @@ import MediaPlayer
  */
 
 final class UIPlayerView: UIView {
-    var currentPlayerState: PlayerViewModel.PlayerState
+    var currentPlayerState: PlayerManager.PlayerState
     
     var player: AVPlayer? = nil {
         didSet {
@@ -38,7 +38,7 @@ final class UIPlayerView: UIView {
     
     var pipController: AVPictureInPictureController?
     
-    init(playerState: PlayerViewModel.PlayerState){
+    init(playerState: PlayerManager.PlayerState){
         self.currentPlayerState = playerState
         super.init(frame: UIApplication.currentWindow?.frame ?? .zero)
         
@@ -50,7 +50,7 @@ final class UIPlayerView: UIView {
         fatalError("init(coder:) has not been implemented")
     }
     
-    func updateState(_ newState: PlayerViewModel.PlayerState) {
+    func updateState(_ newState: PlayerManager.PlayerState) {
         if currentPlayerState.mode != newState.mode {
             print("Player Mode Changed: \(currentPlayerState.mode) => \(newState.mode)")
             setupMode(newState.mode)
@@ -74,7 +74,7 @@ private extension UIPlayerView {
             disablePip()
         }
         
-        // playerLayer.player = mode == .audioMode ? nil : player
+         playerLayer.player = mode == .audioMode ? nil : player
     }
     
     func enablePip() {

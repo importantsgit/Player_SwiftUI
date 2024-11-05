@@ -1,5 +1,5 @@
 //
-//  PlayerDataModel.swift
+//  PlayerManager.swift
 //  Player
 //
 //  Created by Importants on 10/18/24.
@@ -11,12 +11,29 @@ import Combine
 import SwiftUI
 import MediaPlayer
 
-
 /*
  Player의 State와 비즈니스 로직을 포함하는 ViewModel
  
  */
-final class PlayerViewModel: ObservableObject {
+
+final class PlayerManager: ObservableObject {
+    enum ContainerDisplayState: Equatable {
+        case normal
+        case setting
+    }
+    
+    enum ControllerDisplayState: Equatable {
+        case normal
+        case system
+        case lock
+        case audio
+        
+        enum MainDisplayState: Equatable {
+            case normal
+            case system
+        }
+    }
+    
     struct PlayerState {
         var mode: PlayerMode
         var videoQuality: PlayerQualityPreset
@@ -37,19 +54,34 @@ final class PlayerViewModel: ObservableObject {
     }
     
     enum PlayerViewAction {
+        // 오디오
         case audioButtonTapped
         case deactivateAudioButtonTapped
+        
+        // 재생
         case seekBackward(Double)
         case playButtonTapped
         case seekForward(Double)
+        
+        // 설정
         case speedButtonTapped(PlayerSpeed)
         case qualityButtonTapped(PlayerQualityPreset)
         case gravityButtonTapped(PlayerGravity)
+        
+        // lock
+        case lockButtonTapped
+        case unlockButtonTapped
+        
+        case cancelButtonTapped
     }
+    
+    @Published var containerDisplayState: ContainerDisplayState = .normal // 플레이어 컨테이너의 GUI
+    @Published var controllerDisplayState: ControllerDisplayState = .normal // 플레이어 내 컨트롤러의 GUI
     
     @Published var player: AVPlayer?
     @Published var playerState: PlayerState
-    // @Published var isBuffering: Bool = false                    // 버퍼링 여부
+    @Published var progressRatio: CGFloat = 0.0
+    
     @Published var isInitialized: Bool = false                  // 초기화 여부
     @Published var isCurrentItemFinished: Bool = false          // 영상이 끝났는지에 대한 여부
     @Published var playerTimeState: PlayerTimeState = .pause    // 영상 상태 여부
@@ -65,24 +97,11 @@ final class PlayerViewModel: ObservableObject {
             .eraseToAnyPublisher()
     }()
     
-    // TODO: 관찰 가능한 변수로 변환
-    var progressRatio: CGFloat {
-        guard let duration = player?.currentItem?.duration.seconds,
-              let currentTime = player?.currentTime().seconds,
-              duration > 0 && currentTime > 0
-        else { return 1 }
-        
-        print(CGFloat(currentTime / duration))
-        return CGFloat(currentTime / duration)
-    }
+    
+    
+    private var timeObserverToken: Any? // player의 currentTime 관찰
     
     private var cancellables = Set<AnyCancellable>()
-    
-    var isPlaying: Bool {
-        guard let player = player else { return false }
-        return player.timeControlStatus == .playing ? true : false
-        // .waitingToPlayAtSpecifiedRate: 플레이어가 재생을 시작하려고 하지만, 아직 실제로 재생되지 않은 상태
-    }
     
     init(state: PlayerState = .init()) {
         self.playerState = state
@@ -126,11 +145,24 @@ final class PlayerViewModel: ObservableObject {
     func handleAction(_ action: PlayerViewAction) {
         var currentState = playerState
         switch action {
+        case let .gravityButtonTapped(gravity):
+            currentState.gravity = gravity
+            
+        case let .qualityButtonTapped(quality):
+            currentState.videoQuality = quality
+            
+        case let .speedButtonTapped(speed):
+            currentState.speed = speed
+            
         case .audioButtonTapped:
             currentState.mode = .audioMode
+            controllerDisplayState = .audio
+            showControllerSubject.send(true)
             
         case .deactivateAudioButtonTapped:
             currentState.mode = .pipMode
+            controllerDisplayState = .normal
+            showControllerSubject.send(true)
             
         case .playButtonTapped:
             if isCurrentItemFinished {
@@ -142,55 +174,65 @@ final class PlayerViewModel: ObservableObject {
             player?.pause() :
             player?.play()
             return
+            // state update X
             
         case let .seekBackward(value):
             skipBackward(by: value)
-            return
             
         case let .seekForward(value):
             skipForward(by: value)
-            return
             
-        case let .gravityButtonTapped(gravity):
-            currentState.gravity = gravity
+        case .lockButtonTapped:
+            controllerDisplayState = .lock
+            showControllerSubject.send(true)
             
-        case let .qualityButtonTapped(quality):
-            currentState.videoQuality = quality
-            
-        case let .speedButtonTapped(speed):
-            currentState.speed = speed
+        case .unlockButtonTapped:
+            controllerDisplayState = .normal
+            showControllerSubject.send(true)
         }
         print(currentState, playerState)
         updateState(currentState)
     }
+    
+    deinit {
+        if let timeObserverToken {
+            player?.removeTimeObserver(timeObserverToken)
+            self.timeObserverToken = nil
+        }
+    }
 }
 
 // MARK: - Player Seek
-private extension PlayerViewModel {
+private extension PlayerManager {
     func skipBackward(by interval: TimeInterval) {
-        guard let currentTime = player?.currentTime()
+        guard let currentTime = player?.currentTime().seconds
         else { return }
-        seek(to: currentTime - CMTime(seconds: interval, preferredTimescale: 1))
+        
+        let newTime = max(0, currentTime - interval)
+        seek(to: newTime)
     }
     
     func skipForward(by interval: TimeInterval) {
-        guard let currentTime = player?.currentTime()
+        guard let currentTime = player?.currentTime().seconds,
+              let duration = player?.currentItem?.duration.seconds
         else { return }
-        seek(to: currentTime + CMTime(seconds: interval, preferredTimescale: 1))
-    }
-    
-    private func seek(to time: CMTime) {
-        player?.seek(to: time, toleranceBefore: .zero, toleranceAfter: .zero) { _ in }
+        
+        let newTime = min(duration, currentTime + interval)
+        seek(to: newTime)
     }
     
     private func seek(to position: TimeInterval) {
         seek(to: CMTime(seconds: position, preferredTimescale: 1))
     }
+    
+    private func seek(to time: CMTime) {
+        player?.seek(to: time, toleranceBefore: .zero, toleranceAfter: .zero) { _ in }
+    }
 }
 
 
 // MARK: - Update State
-extension PlayerViewModel {
+private extension PlayerManager {
     func updateState(_ newState: PlayerState) {
         if playerState.mode != newState.mode {
             print("Player mode Changed: \(playerState.mode) => \(newState.mode)")
@@ -258,8 +300,34 @@ extension PlayerViewModel {
 }
 
 // MARK: - Setup Observers
-private extension PlayerViewModel {
+private extension PlayerManager {
     func setupPlayerObservers() {
+        // NSEC_PER_SEC: 시간 정밀도를 나노초(nanosecond) 단위로 지정하는 것 < 불필요
+        // value: 시간 값(정수)
+        // timescale: 1초를 나누는 단위(정수)
+        // value/timeScale로 계산
+        let interval = CMTime(seconds: 0.5, preferredTimescale: CMTimeScale(NSEC_PER_SEC))
+        
+        timeObserverToken = player?.addPeriodicTimeObserver(
+            forInterval: interval,
+            queue: DispatchQueue.global()
+        ) { [weak self] time in
+            guard let self = self else { return }
+            
+            let task = Task {
+                try Task.checkCancellation()
+                
+                let progress = self.setProgressRatio()
+                await MainActor.run {
+                    self.progressRatio = progress
+                }
+            }
+            
+            if self.playerTimeState != .playing {
+                task.cancel()
+            }
+        }
+        
         NotificationCenter.default.publisher(for: AVPlayerItem.didPlayToEndTimeNotification)
             .compactMap { $0.object as? AVPlayerItem }
             .filter { [weak self] playerItem in
@@ -307,5 +375,15 @@ private extension PlayerViewModel {
             }
             .store(in: &cancellables)
     }
+    
+    func setProgressRatio() -> CGFloat {
+        guard let duration = player?.currentItem?.duration.seconds,
+              let currentTime = player?.currentTime().seconds,
+              duration > 0 && currentTime > 0
+        else { return 1 }
 
+        print(CGFloat(currentTime / duration))
+        
+        return CGFloat(currentTime / duration)
+    }
 }

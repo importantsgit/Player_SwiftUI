@@ -11,8 +11,8 @@ struct LockView: View {
     enum ControllerViewAction {
         case unlockButtonTapped
     }
-    @EnvironmentObject var playerViewModel: PlayerViewModel
-    @Binding var controllerDisplayState: ControllerContainerView.ControllerDisplayState
+    
+    @EnvironmentObject var playerManager: PlayerManager
     
     var body: some View {
         VStack {
@@ -40,15 +40,12 @@ struct LockView: View {
     func handleAction(_ action: ControllerViewAction) {
         switch action {
         case .unlockButtonTapped:
-            withAnimation {
-                controllerDisplayState = .main(.normal)
-            }
-            playerViewModel.showControllerSubject.send(true)
+            playerManager.handleAction(.unlockButtonTapped)
         }
     }
 }
 
 #Preview {
-    LockView(controllerDisplayState: .constant(.lock))
+    LockView()
         .background(.black.opacity(0.3))
 }

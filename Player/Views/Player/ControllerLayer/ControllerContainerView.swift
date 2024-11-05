@@ -10,26 +10,10 @@ import AVFAudio
 import Combine
 
 struct ControllerContainerView: View {
-    enum ControllerDisplayState: Equatable {
-        case main(MainDisplayState)
-        case lock
-        case audio
-        
-        enum MainDisplayState: Equatable {
-            case normal
-            case system
-        }
-        
-        var isMain: Bool {
-            if case .main(_) = self { return true }
-            return false
-        }
-    }
-    
-    @Binding var controllerDisplayState: ControllerDisplayState
-    @Binding var currentOrientation: UIInterfaceOrientation
     @EnvironmentObject var systemDataModel: SystemDataModel
+    @EnvironmentObject var playerManager: PlayerManager
     @State private var cancellables = Set<AnyCancellable>()
+    @Binding var currentOrientation: UIInterfaceOrientation
     
     var body: some View {
         ZStack {
@@ -47,19 +31,16 @@ struct ControllerContainerView: View {
     // MARK: - ViewBuilder을 입력시 다양한 타입의 뷰를 반환하거나 여러 개의 뷰를 반환할 수 있다.
     @ViewBuilder
     private var content: some View {
-        switch controllerDisplayState {
+        switch playerManager.controllerDisplayState {
         case let .main(state):
             switch state {
             case .normal:
-                ControllerView(
-                    controllerDisplayState: $controllerDisplayState,
-                    currentOrientation: $currentOrientation
-                )
+                ControllerView(currentOrientation: $currentOrientation)
             case .system:
                 SystemDisplayView()
             }
         case .lock:
-            LockView(controllerDisplayState: $controllerDisplayState)
+            LockView()
         
         case .audio:
             EmptyView()

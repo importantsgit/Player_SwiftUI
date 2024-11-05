@@ -11,11 +11,11 @@ import MediaPlayer
 import SwiftUI
 
 struct PlayerView: UIViewRepresentable {
-    @EnvironmentObject var playerViewModel: PlayerViewModel
+    @EnvironmentObject var playerManager: PlayerManager
     
     func makeUIView(context: Context) -> UIPlayerView {
         print("재훈 makeUIView")
-        let view = UIPlayerView(playerState: playerViewModel.playerState)
+        let view = UIPlayerView(playerState: playerManager.playerState)
         return view
     }
     
@@ -24,13 +24,13 @@ struct PlayerView: UIViewRepresentable {
     // 앱 생명주기 이벤트 발생 시
     func updateUIView(_ uiView: UIPlayerView, context: Context) {
         // FIXME: - 플레이어 갱신 문제 > 오디오 모드에서 문제 생김
-        if uiView.player?.currentItem !== playerViewModel.player?.currentItem {
+        if uiView.player?.currentItem !== playerManager.player?.currentItem {
             print("playerChange")
-            uiView.player = playerViewModel.player
+            uiView.player = playerManager.player
         }
         
         // State Update
-        uiView.updateState(playerViewModel.playerState)
+        uiView.updateState(playerManager.playerState)
     }
     
     // UIKit의 Delegate Pattern을 SwiftUI에서 사용할 수 있게 해주는 브릿지 역할

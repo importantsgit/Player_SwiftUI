@@ -12,18 +12,18 @@ import AVFoundation
 import MediaPlayer
 
 struct playerContainerView: View {
-    
-    @EnvironmentObject var playerViewModel: PlayerViewModel
+    @EnvironmentObject var playerManager: PlayerManager
     
     @StateObject var systemDataModel: SystemDataModel = .init()
     
+    @State private var containerDisplayState: ContainerDisplayState = .normal
     @State private var controllerDisplayState: ControllerContainerView.ControllerDisplayState = .main(.normal)
     // 컨트롤러 컨테이너를 노출 시킬지 여부
     @State private var isShowController: Bool = false
     
     @State private var viewSize: CGSize = .zero
     
-    @State private var playerState: PlayerViewModel.PlayerState = .init(videoQuality: .low)
+    @State private var playerState: PlayerManager.PlayerState = .init(videoQuality: .low)
     
     @State private var gestureStart: Bool = false
     
@@ -42,7 +42,7 @@ struct playerContainerView: View {
         let isLandscape = currentOrientation.isLandscape
         let tapGesture = SpatialTapGesture()
             .onEnded { state in
-                playerViewModel.showControllerSubject.send(isShowController == false)
+                playerManager.showControllerSubject.send(isShowController == false)
                 
                 
                 let halfWidth = viewSize.width / 2
@@ -66,7 +66,7 @@ struct playerContainerView: View {
                       (currentWindowSize.minY + 40)...(currentWindowSize.maxY - 40) ~= state.startLocation.y
                 else { return }
                     
-                playerViewModel.showControllerSubject.send(true)
+                playerManager.showControllerSubject.send(true)
                 controllerDisplayState = .main(.system)
                 
                 let halfWidth = viewSize.width / 2
@@ -99,49 +99,57 @@ struct playerContainerView: View {
                 else {
                     systemDataModel.volumeValue.origin = systemDataModel.volumeValue.changed
                 }
-                playerViewModel.showControllerSubject.send(false)
+                playerManager.showControllerSubject.send(false)
             }
-        
         let combineGesture = dragGesture.exclusively(
             before: tapGesture
         )
         ZStack {
-            PlayerView()
-                .gesture(combineGesture)
-                .overlay {
-                    ZStack {
-                        ControllerContainerView(
-                            controllerDisplayState: $controllerDisplayState,
-                            currentOrientation: $currentOrientation
-                        )
-                        .environmentObject(systemDataModel)
-                        .hidden(isShowController == false)
-                        .gesture(tapGesture)
+            HStack(spacing: 0) {
+                PlayerView()
+                    .gesture(combineGesture)
+                    .overlay {
+                        ZStack {
+                            ControllerContainerView(
+                                controllerDisplayState: $controllerDisplayState,
+                                currentOrientation: $currentOrientation
+                            )
+                            .environmentObject(systemDataModel)
+                            .hidden(isShowController == false)
+                            .gesture(tapGesture)
+                        }
                     }
-                }
-                .onReadSize { viewSize = $0 }
-                // Timer 로직
-                .onReceive(
-                    playerViewModel.showControllerSubject
-                ) { isShow in
-                    isShowController = isShow
-                    
-                    if isShow == false && controllerDisplayState.isMain {
-                        controllerDisplayState = .main(.normal)
+                    .onReadSize { viewSize = $0 }
+                    // Timer 로직
+                    .onReceive(
+                        playerManager.showControllerSubject
+                    ) { isShow in
+                        isShowController = isShow
+                        
+                        if isShow == false && controllerDisplayState.isMain {
+                            controllerDisplayState = .main(.normal)
+                        }
                     }
-                }
-                .onReceive(
-                    playerViewModel.timerPublisher
-                ) { _ in
-                    // showControllerSubject.send(true)인 경우만 receive
-                    // 5초 후 플레이어를 닫기 위해
-                    isShowController = false
-                    
-                    if controllerDisplayState.isMain {
-                        controllerDisplayState = .main(.normal)
+                    .onReceive(
+                        playerManager.timerPublisher
+                    ) { _ in
+                        // showControllerSubject.send(true)인 경우만 receive
+                        // 5초 후 플레이어를 닫기 위해
+                        isShowController = false
+                        
+                        if controllerDisplayState.isMain {
+                            controllerDisplayState = .main(.normal)
+                        }
                     }
-                }
-                // .animation(.easeInOut(duration: 0.2), value: isShowController)
+                
+                SettingView()
+                    .frame(width: 200)
+                    .hidden(containerDisplayState != .setting && isLandscape == false)
+                
+            }
+            .animation(.easeInOut(duration: 0.2), value: isShowController)
+
+                //
             
             AudioModeView(
                 controllerDisplayState: $controllerDisplayState,
@@ -150,13 +158,19 @@ struct playerContainerView: View {
                 .hidden(controllerDisplayState != .audio)
             
             ProgressView("Loading...")
-                .hidden(playerViewModel.playerTimeState == .buffering || playerViewModel.isInitialized == false)
+                .progressViewStyle(.circular)
+                .scaleEffect(2)
+                .tint(.white)
+                .hidden(
+                    playerManager.playerTimeState != .buffering ||
+                    playerManager.isInitialized
+                )
         }
     }
 }
 
 #Preview {
     playerContainerView(currentOrientation: .constant(.portrait))
-        .environmentObject(PlayerViewModel())
+        .environmentObject(PlayerManager())
 }
 

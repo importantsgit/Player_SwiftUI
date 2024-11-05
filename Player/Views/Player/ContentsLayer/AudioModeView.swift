@@ -12,8 +12,7 @@ struct AudioModeView: View {
         case deactivateAudioButtonTapped
         case playButtonTapped
     }
-    @EnvironmentObject var playerViewModel: PlayerViewModel
-    @Binding var controllerDisplayState: ControllerContainerView.ControllerDisplayState
+    @EnvironmentObject var playerManager: PlayerManager
     @Binding var currentOrientation: UIInterfaceOrientation
     
     var body: some View {
@@ -45,7 +44,7 @@ struct AudioModeView: View {
                     let size: CGFloat = isLandscape ? 24 : 16
                     
                     Image(
-                        systemName: playerViewModel.playerTimeState == .playing ? "pause" : "play"
+                        systemName: playerManager.playerTimeState == .playing ? "pause" : "play"
                     )
                     .styled(size: size, tintColor: .white)
                     .frame(width: imageSize, height: imageSize)
@@ -60,12 +59,10 @@ struct AudioModeView: View {
     func handleAction(_ action: AudioModeViewAction) {
         switch action {
         case .deactivateAudioButtonTapped:
-            playerViewModel.handleAction(.deactivateAudioButtonTapped)
-            controllerDisplayState = .main(.normal)
-            playerViewModel.showControllerSubject.send(true)
+            playerManager.handleAction(.deactivateAudioButtonTapped)
             
         case .playButtonTapped:
-            playerViewModel.handleAction(.playButtonTapped)
+            playerManager.handleAction(.playButtonTapped)
         }
     }
 }
