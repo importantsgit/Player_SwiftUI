@@ -53,7 +53,7 @@ struct AudioModeView: View {
             
             Spacer()
         }
-        //.background(.black)
+        .background(.black)
     }
     
     func handleAction(_ action: AudioModeViewAction) {

@@ -34,7 +34,7 @@ enum PlayerMode {
 }
 
 // 품질 프리셋 설정
-enum PlayerQualityPreset {
+enum PlayerQualityPreset: CaseIterable {
     case low, medium, high
     
     // 높은 해상도는 일반적으로 더 높은 비트레이트가 필요

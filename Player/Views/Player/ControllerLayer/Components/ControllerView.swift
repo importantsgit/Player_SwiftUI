@@ -11,35 +11,56 @@ import SwiftUI
 struct ControllerView: View {
     enum ControllerViewAction {
         case lockButtonTapped
+        case settingButtonTapped
         case audioButtonTapped
         case backwardButtonTapped
         case playButtonTapped
         case forwardButtonTapped
-        case speedButtonTapped
-        case qualityButtonTapped
-        case gravityButtonTapped
     }
     
     @EnvironmentObject var playerManager: PlayerManager
+    @State private var viewSize: CGSize = .zero
     @Binding var currentOrientation: UIInterfaceOrientation
     
     var body: some View {
         let isLandscape: Bool = currentOrientation.isLandscape
+        let dragGesture = DragGesture(minimumDistance: 0)
+            .onChanged { state in
+                
+                guard isLandscape && playerManager.controllerDisplayState == .normal && playerManager.containerDisplayState == .normal
+                else { return }
+
+                guard let currentWindowSize = UIApplication.currentWindowSize,
+                      (currentWindowSize.minY + 40)...(currentWindowSize.maxY - 40) ~= state.startLocation.y
+                else { return }
+
+                let changeValue = state.translation.width
+                let value = state.velocity
+                
+                print(changeValue, value)
+                
+                
+            }
+            .onEnded { state in
+                guard isLandscape else { return }
+                
+            }
+        
         HStack(spacing: 0) {
             Spacer()
                 .frame(width: isLandscape ? 72 : 16)
-            VStack {
+            VStack(spacing: 0) {
                 Spacer()
                     .frame(height: isLandscape ? 72 : 16)
-                HStack {
+                HStack(spacing: 16) {
+                    let imageSize: CGFloat = isLandscape ? 48 : 32
+                    let size: CGFloat = isLandscape ? 24 : 16
+                    
                     Spacer()
                     
                     Button {
                         handleAction(.audioButtonTapped)
                     } label: {
-                        let imageSize: CGFloat = isLandscape ? 48 : 32
-                        let size: CGFloat = isLandscape ? 24 : 16
-                        
                         Image(systemName: "headphones")
                             .styled(size: size, tintColor: .white)
                             .frame(width: imageSize, height: imageSize)
@@ -48,16 +69,20 @@ struct ControllerView: View {
                     Button {
                         handleAction(.lockButtonTapped)
                     } label: {
-                        let imageSize: CGFloat = isLandscape ? 48 : 32
-                        let size: CGFloat = isLandscape ? 24 : 16
-                        
                         Image(systemName: "lock.fill")
                             .styled(size: size, tintColor: .white)
                             .frame(width: imageSize, height: imageSize)
                     }
                     
-                    Spacer()
-                        .frame(width: 16)
+                    if isLandscape {
+                        Button {
+                            handleAction(.settingButtonTapped)
+                        } label: {
+                            Image(systemName: "gearshape")
+                                .styled(size: size, tintColor: .white)
+                                .frame(width: imageSize, height: imageSize)
+                        }
+                    }
                 }
                 Spacer()
                 HStack(spacing: 42) {
@@ -97,40 +122,38 @@ struct ControllerView: View {
                     }
                 }
                 Spacer()
-                HStack(spacing: 0) {
+                HStack(spacing: 8) {
                     GeometryReader { geomerty in
-                        ZStack(alignment: .leading) {
-                            Rectangle()
-                                .fill(Color.white.opacity(0.5))
-                                .clipShape(.capsule)
-                            Rectangle()
-                                .fill(Color.white)
-                                .clipShape(.capsule)
-                                .frame(width: geomerty.size.width * playerManager.progressRatio)
+                        VStack {
+                            Spacer()
+                            ZStack(alignment: .leading) {
+                                Rectangle()
+                                    .fill(Color.white.opacity(0.5))
+                                    .clipShape(.capsule)
+                                Rectangle()
+                                    .fill(Color.white)
+                                    .clipShape(.capsule)
+                                    .frame(width: geomerty.size.width * playerManager.progressRatio)
+                            }
+                            .frame(width: geomerty.size.width, height: 4)
                         }
-                        .frame(width: geomerty.size.width)
                     }
-                    .frame(height: 4)
+                    .frame(height: 32)
+                    // TODO: 제스처 달기
+                    .gesture(dragGesture)
+                    
+                    Button {
+                        
+                    } label: {
+                        let imageSize: CGFloat = isLandscape ? 48 : 32
+                        let size: CGFloat = isLandscape ? 24 : 16
+                        
+                        Image(systemName: "circle.square")
+                            .styled(size: size, tintColor: .white)
+                            .frame(width: imageSize, height: imageSize)
+                    }
                 }
                 Spacer()
-                HStack(alignment: .center, spacing: 42) {
-                    Button("속도") {
-                        handleAction(.speedButtonTapped)
-                    }
-                    .frame(width: 100)
-                    
-                    Button("화질") {
-                        handleAction(.qualityButtonTapped)
-                    }
-                    .frame(width: 100)
-                    
-                    Button("비율") {
-                        handleAction(.gravityButtonTapped)
-                    }
-                    .frame(width: 100)
-                }
-                .foregroundStyle(.white)
-                .hidden(isLandscape == false)
                 
                 Spacer()
                     .frame(height: isLandscape ? 72 : 16)
@@ -139,6 +162,7 @@ struct ControllerView: View {
             Spacer()
                 .frame(width: isLandscape ? 72 : 16)
         }
+        .onReadSize { viewSize = $0 }
         
     }
     
@@ -159,17 +183,8 @@ struct ControllerView: View {
         case .backwardButtonTapped:
             playerManager.handleAction(.seekBackward(10))
             
-        case .speedButtonTapped:
-            let speed: PlayerSpeed = [.fast, .normal, .slow].randomElement()!
-            playerManager.handleAction(.speedButtonTapped(speed))
-            
-        case .qualityButtonTapped:
-            let videoQuality: PlayerQualityPreset = [.high, .low, .medium].randomElement()!
-            playerManager.handleAction(.qualityButtonTapped(videoQuality))
-            
-        case .gravityButtonTapped:
-            let gravity: PlayerGravity = [.fill, .fit, .stretch].randomElement()!
-            playerManager.handleAction(.gravityButtonTapped(gravity))
+        case .settingButtonTapped:
+            playerManager.handleAction(.settingButtonTapped)
         }
     }
 }

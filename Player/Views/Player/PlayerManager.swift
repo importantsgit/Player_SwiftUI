@@ -19,6 +19,7 @@ import MediaPlayer
 final class PlayerManager: ObservableObject {
     enum ContainerDisplayState: Equatable {
         case normal
+        case audio
         case setting
     }
     
@@ -26,7 +27,6 @@ final class PlayerManager: ObservableObject {
         case normal
         case system
         case lock
-        case audio
         
         enum MainDisplayState: Equatable {
             case normal
@@ -72,7 +72,9 @@ final class PlayerManager: ObservableObject {
         case lockButtonTapped
         case unlockButtonTapped
         
-        case cancelButtonTapped
+        // contents
+        case settingButtonTapped
+        case closeContentButtonTapped
     }
     
     @Published var containerDisplayState: ContainerDisplayState = .normal // 플레이어 컨테이너의 GUI
@@ -156,23 +158,25 @@ final class PlayerManager: ObservableObject {
             
         case .audioButtonTapped:
             currentState.mode = .audioMode
-            controllerDisplayState = .audio
-            showControllerSubject.send(true)
+            containerDisplayState = .audio
+            showControllerSubject.send(false)
             
         case .deactivateAudioButtonTapped:
             currentState.mode = .pipMode
-            controllerDisplayState = .normal
+            containerDisplayState = .normal
             showControllerSubject.send(true)
             
         case .playButtonTapped:
             if isCurrentItemFinished {
                 player?.seek(to: .zero)
+                showControllerSubject.send(true)
                 return
             }
             
             playerTimeState == .playing ?
             player?.pause() :
             player?.play()
+            showControllerSubject.send(true)
             return
             // state update X
             
@@ -189,6 +193,13 @@ final class PlayerManager: ObservableObject {
         case .unlockButtonTapped:
             controllerDisplayState = .normal
             showControllerSubject.send(true)
+            
+        case .closeContentButtonTapped:
+            containerDisplayState = .normal
+            
+        case .settingButtonTapped:
+            containerDisplayState = .setting
+            showControllerSubject.send(false)
         }
         print(currentState, playerState)
         updateState(currentState)
@@ -381,9 +392,7 @@ private extension PlayerManager {
               let currentTime = player?.currentTime().seconds,
               duration > 0 && currentTime > 0
         else { return 1 }
-
-        print(CGFloat(currentTime / duration))
-        
+        // print(CGFloat(currentTime / duration))
         return CGFloat(currentTime / duration)
     }
 }

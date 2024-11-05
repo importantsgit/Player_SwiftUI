@@ -16,8 +16,6 @@ struct playerContainerView: View {
     
     @StateObject var systemDataModel: SystemDataModel = .init()
     
-    @State private var containerDisplayState: ContainerDisplayState = .normal
-    @State private var controllerDisplayState: ControllerContainerView.ControllerDisplayState = .main(.normal)
     // 컨트롤러 컨테이너를 노출 시킬지 여부
     @State private var isShowController: Bool = false
     
@@ -42,8 +40,13 @@ struct playerContainerView: View {
         let isLandscape = currentOrientation.isLandscape
         let tapGesture = SpatialTapGesture()
             .onEnded { state in
-                playerManager.showControllerSubject.send(isShowController == false)
+                guard playerManager.containerDisplayState == .normal
+                else {
+                    playerManager.containerDisplayState = .normal
+                    return
+                }
                 
+                playerManager.showControllerSubject.send(isShowController == false)
                 
                 let halfWidth = viewSize.width / 2
                 
@@ -59,7 +62,7 @@ struct playerContainerView: View {
         let dragGesture = DragGesture(minimumDistance: 1)
             .onChanged { state in
                 print("dragGesture")
-                guard isLandscape && controllerDisplayState.isMain
+                guard isLandscape && playerManager.controllerDisplayState == .normal && playerManager.containerDisplayState == .normal
                 else { return }
 
                 guard let currentWindowSize = UIApplication.currentWindowSize,
@@ -67,7 +70,7 @@ struct playerContainerView: View {
                 else { return }
                     
                 playerManager.showControllerSubject.send(true)
-                controllerDisplayState = .main(.system)
+                playerManager.controllerDisplayState = .normal
                 
                 let halfWidth = viewSize.width / 2
                 let changeValue = state.translation.height
@@ -110,10 +113,7 @@ struct playerContainerView: View {
                     .gesture(combineGesture)
                     .overlay {
                         ZStack {
-                            ControllerContainerView(
-                                controllerDisplayState: $controllerDisplayState,
-                                currentOrientation: $currentOrientation
-                            )
+                            ControllerContainerView(currentOrientation: $currentOrientation)
                             .environmentObject(systemDataModel)
                             .hidden(isShowController == false)
                             .gesture(tapGesture)
@@ -126,8 +126,8 @@ struct playerContainerView: View {
                     ) { isShow in
                         isShowController = isShow
                         
-                        if isShow == false && controllerDisplayState.isMain {
-                            controllerDisplayState = .main(.normal)
+                        if isShow == false && playerManager.controllerDisplayState == .normal {
+                            playerManager.controllerDisplayState = .normal
                         }
                     }
                     .onReceive(
@@ -137,25 +137,24 @@ struct playerContainerView: View {
                         // 5초 후 플레이어를 닫기 위해
                         isShowController = false
                         
-                        if controllerDisplayState.isMain {
-                            controllerDisplayState = .main(.normal)
+                        if playerManager.controllerDisplayState == .normal {
+                            playerManager.controllerDisplayState = .normal
                         }
                     }
-                
-                SettingView()
-                    .frame(width: 200)
-                    .hidden(containerDisplayState != .setting && isLandscape == false)
-                
             }
             .animation(.easeInOut(duration: 0.2), value: isShowController)
 
                 //
             
-            AudioModeView(
-                controllerDisplayState: $controllerDisplayState,
-                currentOrientation: $currentOrientation
-            )
-                .hidden(controllerDisplayState != .audio)
+            AudioModeView(currentOrientation: $currentOrientation)
+                .hidden(playerManager.containerDisplayState != .audio)
+            
+            HStack(spacing: 0) {
+                Spacer()
+                SettingView()
+                    .frame(width: 380)
+            }
+            .hidden(playerManager.containerDisplayState != .setting || isLandscape == false)
             
             ProgressView("Loading...")
                 .progressViewStyle(.circular)

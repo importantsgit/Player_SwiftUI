@@ -32,18 +32,12 @@ struct ControllerContainerView: View {
     @ViewBuilder
     private var content: some View {
         switch playerManager.controllerDisplayState {
-        case let .main(state):
-            switch state {
-            case .normal:
-                ControllerView(currentOrientation: $currentOrientation)
-            case .system:
-                SystemDisplayView()
-            }
+        case .normal:
+            ControllerView(currentOrientation: $currentOrientation)
+        case .system:
+            SystemDisplayView()
         case .lock:
             LockView()
-        
-        case .audio:
-            EmptyView()
         }
     }
 }
