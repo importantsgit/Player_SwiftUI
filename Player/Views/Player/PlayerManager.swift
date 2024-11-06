@@ -27,11 +27,7 @@ final class PlayerManager: ObservableObject {
         case normal
         case system
         case lock
-        
-        enum MainDisplayState: Equatable {
-            case normal
-            case system
-        }
+        case hidden
     }
     
     struct PlayerState {
@@ -63,6 +59,20 @@ final class PlayerManager: ObservableObject {
         case playButtonTapped
         case seekForward(Double)
         
+        // System
+        case systemDragging
+        case systemDragged
+        
+        // gesture
+        case controllerTapped
+        
+        case resetGestureValue
+        case seekingBarDragging(CGFloat)
+        case seekingBarDragged
+        
+        case microSeekingDragging(CGFloat)
+        case microSeekingDragged
+        
         // 설정
         case speedButtonTapped(PlayerSpeed)
         case qualityButtonTapped(PlayerQualityPreset)
@@ -79,27 +89,17 @@ final class PlayerManager: ObservableObject {
     
     @Published var containerDisplayState: ContainerDisplayState = .normal // 플레이어 컨테이너의 GUI
     @Published var controllerDisplayState: ControllerDisplayState = .normal // 플레이어 내 컨트롤러의 GUI
-    
     @Published var player: AVPlayer?
     @Published var playerState: PlayerState
     @Published var progressRatio: CGFloat = 0.0
+    @Published var playingTime: String = ""
     
     @Published var isInitialized: Bool = false                  // 초기화 여부
     @Published var isCurrentItemFinished: Bool = false          // 영상이 끝났는지에 대한 여부
     @Published var playerTimeState: PlayerTimeState = .pause    // 영상 상태 여부
     @Published var playerError: Error?                          // 에러 여부
     
-    // MARK: 해당 Subject에 send 시, 5초 후 timerPublisher가 sink됨
-    var showControllerSubject = PassthroughSubject<Bool, Never>()
-    lazy var timerPublisher: AnyPublisher<Void, Never> = {
-        showControllerSubject
-            .filter { $0 } // true 만
-            .map { _ in () } // Void로 변환
-            .debounce(for: .seconds(5), scheduler: RunLoop.main)
-            .eraseToAnyPublisher()
-    }()
-    
-    
+    private var updateDragValue: Double? = nil
     
     private var timeObserverToken: Any? // player의 currentTime 관찰
     
@@ -158,54 +158,92 @@ final class PlayerManager: ObservableObject {
             
         case .audioButtonTapped:
             currentState.mode = .audioMode
-            containerDisplayState = .audio
-            showControllerSubject.send(false)
+            controllerDisplayState = .hidden
             
         case .deactivateAudioButtonTapped:
             currentState.mode = .pipMode
             containerDisplayState = .normal
-            showControllerSubject.send(true)
+            controllerDisplayState = .normal
             
         case .playButtonTapped:
             if isCurrentItemFinished {
                 player?.seek(to: .zero)
-                showControllerSubject.send(true)
+                controllerDisplayState = .normal
                 return
             }
             
             playerTimeState == .playing ?
             player?.pause() :
             player?.play()
-            showControllerSubject.send(true)
+            controllerDisplayState = .normal
             return
             // state update X
+        
+        case .controllerTapped:
+            controllerDisplayState = controllerDisplayState == .hidden ? .normal : .hidden
+            return
+            
+        case .resetGestureValue:
+            self.updateDragValue = nil
+            controllerDisplayState = .hidden
+            return
+            
+        case let .seekingBarDragging(value):
+            self.updateDragValue = value
+            self.progressRatio = value
+            controllerDisplayState = .normal
+            return
+            
+        case .seekingBarDragged:
+            seeking(by: updateDragValue)
+            return
+            
+        case let .microSeekingDragging(value):
+            self.updateDragValue = value
+            // TODO: micro drag GUI
+            controllerDisplayState = .normal
+            return
+            
+        case .microSeekingDragged:
+            microSeeking(by: updateDragValue)
+            return
             
         case let .seekBackward(value):
             skipBackward(by: value)
+            return
             
         case let .seekForward(value):
             skipForward(by: value)
+            return
             
         case .lockButtonTapped:
             controllerDisplayState = .lock
-            showControllerSubject.send(true)
+            return
             
         case .unlockButtonTapped:
             controllerDisplayState = .normal
-            showControllerSubject.send(true)
+            return
             
         case .closeContentButtonTapped:
             containerDisplayState = .normal
+            return
             
         case .settingButtonTapped:
             containerDisplayState = .setting
-            showControllerSubject.send(false)
+            controllerDisplayState = .hidden
+            return
+        case .systemDragging:
+            controllerDisplayState = .system
+            
+        case .systemDragged:
+            controllerDisplayState = .hidden
         }
-        print(currentState, playerState)
+        
         updateState(currentState)
     }
     
     deinit {
+        print("deinit")
         if let timeObserverToken {
             player?.removeTimeObserver(timeObserverToken)
             self.timeObserverToken = nil
@@ -232,15 +270,36 @@ private extension PlayerManager {
         seek(to: newTime)
     }
     
+    func seeking(by ratio: Double?) {
+        guard let duration = player?.currentItem?.duration.seconds,
+              let ratio
+        else { return }
+        
+        let newTime = duration * ratio
+        seek(to: newTime)
+    }
+    
+    func microSeeking(by transition: Double?) {
+        guard let duration = player?.currentItem?.duration.seconds,
+              let currentTime = player?.currentTime().seconds,
+              let transition
+        else { return }
+        
+        let seekAmount = duration * transition
+        let newTime = max(0, min(duration, currentTime + seekAmount))
+        seek(to: newTime)
+    }
+    
     private func seek(to position: TimeInterval) {
         seek(to: CMTime(seconds: position, preferredTimescale: 1))
     }
     
     private func seek(to time: CMTime) {
-        player?.seek(to: time, toleranceBefore: .zero, toleranceAfter: .zero) { _ in }
+        player?.seek(to: time, toleranceBefore: .zero, toleranceAfter: .zero) { [weak self] _ in
+            self?.updateDragValue = nil
+        }
     }
 }
-
 
 // MARK: - Update State
 private extension PlayerManager {
@@ -323,14 +382,18 @@ private extension PlayerManager {
             forInterval: interval,
             queue: DispatchQueue.global()
         ) { [weak self] time in
-            guard let self = self else { return }
+            // 만약 seek으로 인해 position이 update가 되고 있다면 X
+            guard self?.updateDragValue == nil,
+                  let self = self else { return }
             
             let task = Task {
                 try Task.checkCancellation()
-                
+
                 let progress = self.setProgressRatio()
+                let convertTime = time.convertCMTimeToString()
                 await MainActor.run {
                     self.progressRatio = progress
+                    self.playingTime = convertTime
                 }
             }
             

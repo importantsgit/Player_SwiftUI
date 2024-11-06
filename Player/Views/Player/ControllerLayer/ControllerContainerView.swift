@@ -38,6 +38,8 @@ struct ControllerContainerView: View {
             SystemDisplayView()
         case .lock:
             LockView()
+        default:
+            EmptyView()
         }
     }
 }

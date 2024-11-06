@@ -16,42 +16,24 @@ struct ControllerView: View {
         case backwardButtonTapped
         case playButtonTapped
         case forwardButtonTapped
+        case seekingBarDragging(CGFloat)
+        case seekingBarDragged
+        case gestureConflicted
     }
     
     @EnvironmentObject var playerManager: PlayerManager
-    @State private var viewSize: CGSize = .zero
+    @GestureState var seekGesture: Bool = true
     @Binding var currentOrientation: UIInterfaceOrientation
     
     var body: some View {
         let isLandscape: Bool = currentOrientation.isLandscape
-        let dragGesture = DragGesture(minimumDistance: 0)
-            .onChanged { state in
-                
-                guard isLandscape && playerManager.controllerDisplayState == .normal && playerManager.containerDisplayState == .normal
-                else { return }
-
-                guard let currentWindowSize = UIApplication.currentWindowSize,
-                      (currentWindowSize.minY + 40)...(currentWindowSize.maxY - 40) ~= state.startLocation.y
-                else { return }
-
-                let changeValue = state.translation.width
-                let value = state.velocity
-                
-                print(changeValue, value)
-                
-                
-            }
-            .onEnded { state in
-                guard isLandscape else { return }
-                
-            }
         
         HStack(spacing: 0) {
             Spacer()
-                .frame(width: isLandscape ? 72 : 16)
+                .frame(width: isLandscape ? (currentOrientation == .landscapeLeft ? 24 : UIApplication.safeAreaInset?.left) : 16)
             VStack(spacing: 0) {
                 Spacer()
-                    .frame(height: isLandscape ? 72 : 16)
+                    .frame(height: isLandscape ? UIApplication.safeAreaInset?.top : 16)
                 HStack(spacing: 16) {
                     let imageSize: CGFloat = isLandscape ? 48 : 32
                     let size: CGFloat = isLandscape ? 24 : 16
@@ -123,9 +105,20 @@ struct ControllerView: View {
                 }
                 Spacer()
                 HStack(spacing: 8) {
-                    GeometryReader { geomerty in
-                        VStack {
-                            Spacer()
+                    GeometryReader { geometry in
+                        VStack(spacing: 0) {
+                            /*
+                             Spacer / Color.clear 자체는 터치 이벤트를 받을 수 없음
+                             따라서 .contentShape(Rectangle())를 이용하여 터치 이벤트를 받아야 함
+                            */
+                            Color.clear
+                                .contentShape(Rectangle())
+                            HStack(spacing: 0) {
+                                Color.clear
+                                    .contentShape(Rectangle())
+                                Text("\(playerManager.playingTime):\(playerManager.player?.currentItem?.duration.convertCMTimeToString() ?? "")")
+                                    .font(.system(size: 12, weight: .medium))
+                            }
                             ZStack(alignment: .leading) {
                                 Rectangle()
                                     .fill(Color.white.opacity(0.5))
@@ -133,14 +126,55 @@ struct ControllerView: View {
                                 Rectangle()
                                     .fill(Color.white)
                                     .clipShape(.capsule)
-                                    .frame(width: geomerty.size.width * playerManager.progressRatio)
+                                    .frame(width: geometry.size.width * playerManager.progressRatio)
                             }
-                            .frame(width: geomerty.size.width, height: 4)
+                            .frame(width: geometry.size.width, height: 4)
+                            Color.clear
+                                .contentShape(Rectangle())
                         }
+                        .allowsHitTesting(true)
+                        .background(.blue)
+                        .onChange(of: seekGesture) { (_, seekGesture) in
+                            if seekGesture == true {
+                                handleAction(.gestureConflicted)
+                            }
+                        }
+                        .gesture(
+                            // 내부 width 값을 알아야하기 때문에 Gesture 내부에 배치
+                            // 참고로 각가의 파라미터 초기값은 10 / .local임
+                            DragGesture(minimumDistance: 0)
+                                .updating($seekGesture) { currentState, state, transition in
+                                    print("updating")
+                                     state = currentState.translation == .zero ? true : false
+                                 }
+                                .onChanged { state in
+                                    Task {
+                                        guard let safeAreaInset = UIApplication.safeAreaInset,
+                                              let currentWindowSize = UIApplication.currentWindowSize
+                                        else { return }
+                                        
+                                        playerManager.controllerDisplayState = .normal
+                                        
+                                        print("\(safeAreaInset.top)...\(currentWindowSize.maxY) - \(safeAreaInset.bottom) ~= \(state.startLocation.y)")
+                                        
+                                        if isLandscape {
+                                            guard (safeAreaInset.top)...(currentWindowSize.maxY - safeAreaInset.bottom) ~= state.startLocation.y
+                                            else { return }
+                                        }
+
+                                        let seekingBarWidth = geometry.size.width
+                                        let changeValue = max(0, min(seekingBarWidth, state.location.x))
+                                        let updatePosition = changeValue / seekingBarWidth
+                                        handleAction(.seekingBarDragging(updatePosition))
+                                    }
+
+                                }
+                                .onEnded { state in
+                                    handleAction(.seekingBarDragged)
+                                }
+                        )
                     }
-                    .frame(height: 32)
-                    // TODO: 제스처 달기
-                    .gesture(dragGesture)
+                    .frame(height: 24)
                     
                     Button {
                         
@@ -154,16 +188,11 @@ struct ControllerView: View {
                     }
                 }
                 Spacer()
-                
-                Spacer()
-                    .frame(height: isLandscape ? 72 : 16)
+                    .frame(height: isLandscape ? UIApplication.safeAreaInset?.bottom : 16)
             }
-            
             Spacer()
-                .frame(width: isLandscape ? 72 : 16)
+                .frame(width: isLandscape ? (currentOrientation == .landscapeLeft ? UIApplication.safeAreaInset?.left : 24) : 16)
         }
-        .onReadSize { viewSize = $0 }
-        
     }
     
     func handleAction(_ action: ControllerViewAction) {
@@ -185,6 +214,15 @@ struct ControllerView: View {
             
         case .settingButtonTapped:
             playerManager.handleAction(.settingButtonTapped)
+            
+        case let .seekingBarDragging(updatePosition):
+            playerManager.handleAction(.seekingBarDragging(updatePosition))
+            
+        case .seekingBarDragged:
+            playerManager.handleAction(.seekingBarDragged)
+        
+        case .gestureConflicted:
+            playerManager.handleAction(.resetGestureValue)
         }
     }
 }
