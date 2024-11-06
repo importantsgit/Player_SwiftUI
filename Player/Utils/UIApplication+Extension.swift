@@ -29,6 +29,10 @@ extension UIApplication {
     static var currentWindowSize: CGRect? {
         currentWindow?.frame
     }
+    
+    static var safeAreaInset: UIEdgeInsets? {
+        currentWindow?.safeAreaInsets ?? .init(top: 40, left: 40, bottom: 40, right: 40)
+    }
 }
 
 
