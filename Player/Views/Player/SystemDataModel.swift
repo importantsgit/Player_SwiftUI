@@ -29,8 +29,25 @@ final class SystemDataModel: ObservableObject {
         changed: AVAudioSession.currentVolume
     )
     
+    enum SystemViewAction {
+        case updateBrightness(CGFloat)
+        case updateVolume(Float)
+    }
+    
     private var cancellables = Set<AnyCancellable>()
     
+    func handleAction(_ action: SystemViewAction) {
+        switch action {
+        case let .updateBrightness(value):
+            setBrightness(value: value)
+            
+        case let .updateVolume(value):
+            setVolume(value: value)
+        }
+    }
+}
+
+private extension SystemDataModel {
     func setBrightness(value: CGFloat) {
         let currentValue = reduceValue(value: value)
         brightnessValue.changed = currentValue
@@ -44,9 +61,7 @@ final class SystemDataModel: ObservableObject {
             volume: currentValue
         )
     }
-}
-
-private extension SystemDataModel {
+    
     func reduceValue<T: Comparable & FloatingPoint>(value: T) -> T {
         min(max(value, 0), 1)
     }

@@ -103,12 +103,12 @@ struct playerContainerView: View {
                     if state.startLocation.x < halfWidth {
                         // 밝기 조절
                         let updateValue = (systemDataModel.brightnessValue.origin - changedValue)
-                        systemDataModel.setBrightness(value: updateValue)
+                        systemDataModel.handleAction(.updateBrightness(updateValue))
                     }
                     else {
                         // 음량 조절
                         let updateValue = (systemDataModel.volumeValue.origin - Float(changedValue))
-                        systemDataModel.setVolume(value: updateValue)
+                        systemDataModel.handleAction(.updateVolume(updateValue))
                     }
                     
                 case .horizontal:
@@ -161,7 +161,6 @@ struct playerContainerView: View {
                                 .hidden(playerManager.controllerDisplayState == .hidden)
                                 .onChange(of: seekGesture) { (_, seekGesture) in
                                     if seekGesture == true {
-                                        print("!!!!")
                                         handleAction(.gestureConflicted)
                                     }
                                 }
@@ -216,6 +215,8 @@ struct playerContainerView: View {
             
         case .gestureConflicted:
             playerManager.handleAction(.resetGestureValue)
+            systemDataModel.brightnessValue.origin = systemDataModel.brightnessValue.changed
+            systemDataModel.volumeValue.origin = systemDataModel.volumeValue.changed
             
         case let .microSeekingDragging(transition):
             playerManager.handleAction(.microSeekingDragging(transition))
@@ -225,6 +226,7 @@ struct playerContainerView: View {
             
         case .systemDragging:
             playerManager.handleAction(.systemDragging)
+            
         case .systemDragged:
             playerManager.handleAction(.systemDragged)
         }

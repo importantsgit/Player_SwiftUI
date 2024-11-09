@@ -133,7 +133,6 @@ struct ControllerView: View {
                                 .contentShape(Rectangle())
                         }
                         .allowsHitTesting(true)
-                        .background(.blue)
                         .onChange(of: seekGesture) { (_, seekGesture) in
                             if seekGesture == true {
                                 handleAction(.gestureConflicted)
@@ -153,8 +152,6 @@ struct ControllerView: View {
                                               let currentWindowSize = UIApplication.currentWindowSize
                                         else { return }
                                         
-                                        playerManager.controllerDisplayState = .normal
-                                        
                                         print("\(safeAreaInset.top)...\(currentWindowSize.maxY) - \(safeAreaInset.bottom) ~= \(state.startLocation.y)")
                                         
                                         if isLandscape {
@@ -164,7 +161,7 @@ struct ControllerView: View {
 
                                         let seekingBarWidth = geometry.size.width
                                         let changeValue = max(0, min(seekingBarWidth, state.location.x))
-                                        let updatePosition = changeValue / seekingBarWidth
+                                        let updatePosition = changeValue == 0 ? 0 : changeValue / seekingBarWidth
                                         handleAction(.seekingBarDragging(updatePosition))
                                     }
 
@@ -174,7 +171,7 @@ struct ControllerView: View {
                                 }
                         )
                     }
-                    .frame(height: 24)
+                    .frame(height: 32)
                     
                     Button {
                         
@@ -188,7 +185,7 @@ struct ControllerView: View {
                     }
                 }
                 Spacer()
-                    .frame(height: isLandscape ? UIApplication.safeAreaInset?.bottom : 16)
+                    .frame(height: isLandscape ? (UIApplication.safeAreaInset?.bottom ?? 0) + 10 : 16)
             }
             Spacer()
                 .frame(width: isLandscape ? (currentOrientation == .landscapeLeft ? UIApplication.safeAreaInset?.left : 24) : 16)

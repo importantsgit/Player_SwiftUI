@@ -89,6 +89,11 @@ final class PlayerManager: ObservableObject {
     
     @Published var containerDisplayState: ContainerDisplayState = .normal // 플레이어 컨테이너의 GUI
     @Published var controllerDisplayState: ControllerDisplayState = .normal // 플레이어 내 컨트롤러의 GUI
+    {
+        didSet {
+            print(controllerDisplayState)
+        }
+    }
     @Published var player: AVPlayer?
     @Published var playerState: PlayerState
     @Published var progressRatio: CGFloat = 0.0
@@ -159,6 +164,7 @@ final class PlayerManager: ObservableObject {
         case .audioButtonTapped:
             currentState.mode = .audioMode
             controllerDisplayState = .hidden
+            containerDisplayState = .audio
             
         case .deactivateAudioButtonTapped:
             currentState.mode = .pipMode
@@ -184,8 +190,10 @@ final class PlayerManager: ObservableObject {
             return
             
         case .resetGestureValue:
+            if self.controllerDisplayState == .system {
+                self.controllerDisplayState = .hidden
+            }
             self.updateDragValue = nil
-            controllerDisplayState = .hidden
             return
             
         case let .seekingBarDragging(value):
