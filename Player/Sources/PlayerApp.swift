@@ -27,7 +27,7 @@ struct PlayerApp: App {
     }()
 
     var body: some Scene {
-
+        
         
         WindowGroup {
             let url = URL(string: "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4")!

@@ -61,6 +61,9 @@ struct ContentView: View {
                 
             }
         }
+        .onAppear {
+            print(BuildConfiguration.target)
+        }
     }
 }
 
