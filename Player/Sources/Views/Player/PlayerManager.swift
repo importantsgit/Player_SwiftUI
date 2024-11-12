@@ -11,10 +11,6 @@ import Combine
 import SwiftUI
 import MediaPlayer
 
-/*
- Player의 State와 비즈니스 로직을 포함하는 ViewModel
- 
- */
 
 final class PlayerManager: ObservableObject {
     enum ContainerDisplayState: Equatable {
