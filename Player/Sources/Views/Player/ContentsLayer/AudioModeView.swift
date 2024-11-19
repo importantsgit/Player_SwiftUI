@@ -13,10 +13,9 @@ struct AudioModeView: View {
         case playButtonTapped
     }
     @EnvironmentObject var playerManager: PlayerManager
-    @Binding var currentOrientation: UIInterfaceOrientation
     
     var body: some View {
-        let isLandscape: Bool = currentOrientation.isLandscape
+        let isLandscape: Bool = playerManager.currentOrientation.isLandscape
         VStack {
             Spacer()
                 .frame(height: 24)

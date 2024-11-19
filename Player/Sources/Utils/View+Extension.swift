@@ -103,20 +103,42 @@ struct VolumeViewModifier: ViewModifier {
 }
 
 struct OrientationInfo: ViewModifier {
+    @Environment(\.horizontalSizeClass) var horizontalSizeClass
     @Binding var orientation: UIInterfaceOrientation
     
     func body(content: Content) -> some View {
         content
-            .onReceive(NotificationCenter.default.publisher(for: UIDevice.orientationDidChangeNotification)) { _ in
+            .onChange(
+                of: horizontalSizeClass
+            ) { _, newValue in
+                print("orientationLock: \(AppDelegate.orientationLock)")
+                guard orientation != UIApplication.orientation,
+                      AppDelegate.orientationLock.matches(to: orientation)
+                else { return }
+                
                 orientation = UIApplication.orientation
             }
+            .onReceive(NotificationCenter
+                .default
+                .publisher(
+                    for: UIDevice.orientationDidChangeNotification
+                )
+            ) { _ in
+                print("orientationLock: \(AppDelegate.orientationLock)")
+                guard orientation != UIApplication.orientation,
+                      AppDelegate.orientationLock.matches(to: orientation)
+                else { return }
+                
+                orientation = UIApplication.orientation
+            }
+
     }
 }
 
 // MARK: - Helper Extensions
 extension UIInterfaceOrientation {
     var isLandscape: Bool {
-        return self == .landscapeLeft || self == .landscapeRight
+        self == .landscapeLeft || self == .landscapeRight
     }
 }
 

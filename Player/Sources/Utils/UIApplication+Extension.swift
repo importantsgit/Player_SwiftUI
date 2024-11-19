@@ -8,7 +8,7 @@
 import UIKit
 
 extension UIApplication {
-    private static var currentScene: UIWindowScene? {
+    static var currentScene: UIWindowScene? {
         shared.connectedScenes.first as? UIWindowScene
         // 단일 WindowScene이면서 active 아닌 상태에서 값을 불러오는 경우가 있다면 위 로직을 사용
             // .first { $0.activationState == .foregroundActive } as? UIWindowScene

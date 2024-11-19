@@ -10,7 +10,6 @@ import UIKit
 import MediaPlayer
 
 struct ContentView: View {
-    @State var currentOrientation = UIApplication.orientation
     @State private var viewSize: CGSize = .zero
     @StateObject var playerManager = PlayerManager()
     
@@ -22,7 +21,7 @@ struct ContentView: View {
     }
     
     var body: some View {
-        let isLandscape = currentOrientation.isLandscape
+        let isLandscape = playerManager.currentOrientation.isLandscape
         // 자동으로 Spacing이 들어가기 때문에 0을 입력
         
         GeometryReader { geometry in
@@ -32,9 +31,7 @@ struct ContentView: View {
                         .background(.white)
                 }
                 
-                playerContainerView(
-                    currentOrientation: $currentOrientation
-                )
+                playerContainerView()
                 .frame(height: isLandscape == false ? geometry.size.width*(9/16) : geometry.size.height)
                     .environmentObject(playerManager)
                     .task {
@@ -50,7 +47,7 @@ struct ContentView: View {
                 }
             }
         }
-        .detectOrientation($currentOrientation)
+        .detectOrientation($playerManager.currentOrientation)
         .animation(.easeInOut, value: isLandscape)
         .ignoresSafeArea(.all, edges: isLandscape ? .all : [])
         .task {

@@ -19,18 +19,18 @@ struct ControllerView: View {
         case seekingBarDragging(CGFloat)
         case seekingBarDragged
         case gestureConflicted
+        case orientationButtonTapped
     }
     
     @EnvironmentObject var playerManager: PlayerManager
     @GestureState var seekGesture: Bool = true
-    @Binding var currentOrientation: UIInterfaceOrientation
     
     var body: some View {
-        let isLandscape: Bool = currentOrientation.isLandscape
+        let isLandscape: Bool = playerManager.currentOrientation.isLandscape
         
         HStack(spacing: 0) {
             Spacer()
-                .frame(width: isLandscape ? (currentOrientation == .landscapeLeft ? 24 : UIApplication.safeAreaInset?.left) : 16)
+                .frame(width: isLandscape ? (playerManager.currentOrientation == .landscapeLeft ? 24 : UIApplication.safeAreaInset?.left) : 16)
             VStack(spacing: 0) {
                 Spacer()
                     .frame(height: isLandscape ? UIApplication.safeAreaInset?.top : 16)
@@ -174,7 +174,7 @@ struct ControllerView: View {
                     .frame(height: 32)
                     
                     Button {
-                        
+                        handleAction(.orientationButtonTapped)
                     } label: {
                         let imageSize: CGFloat = isLandscape ? 48 : 32
                         let size: CGFloat = isLandscape ? 24 : 16
@@ -188,7 +188,7 @@ struct ControllerView: View {
                     .frame(height: isLandscape ? (UIApplication.safeAreaInset?.bottom ?? 0) + 10 : 16)
             }
             Spacer()
-                .frame(width: isLandscape ? (currentOrientation == .landscapeLeft ? UIApplication.safeAreaInset?.left : 24) : 16)
+                .frame(width: isLandscape ? (playerManager.currentOrientation == .landscapeLeft ? UIApplication.safeAreaInset?.left : 24) : 16)
         }
     }
     
@@ -220,6 +220,9 @@ struct ControllerView: View {
         
         case .gestureConflicted:
             playerManager.handleAction(.resetGestureValue)
+            
+        case .orientationButtonTapped:
+            playerManager.handleAction(.orientationButtonTapped)
         }
     }
 }

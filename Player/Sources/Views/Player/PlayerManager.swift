@@ -11,7 +11,6 @@ import Combine
 import SwiftUI
 import MediaPlayer
 
-
 final class PlayerManager: ObservableObject {
     enum ContainerDisplayState: Equatable {
         case normal
@@ -81,6 +80,9 @@ final class PlayerManager: ObservableObject {
         // contents
         case settingButtonTapped
         case closeContentButtonTapped
+        
+        case orientationButtonTapped
+        case orientationLock
     }
     
     @Published var containerDisplayState: ContainerDisplayState = .normal // 플레이어 컨테이너의 GUI
@@ -94,6 +96,7 @@ final class PlayerManager: ObservableObject {
     @Published var playerState: PlayerState
     @Published var progressRatio: CGFloat = 0.0
     @Published var playingTime: String = ""
+    @Published var currentOrientation: UIInterfaceOrientation = UIApplication.orientation
     
     @Published var isInitialized: Bool = false                  // 초기화 여부
     @Published var isCurrentItemFinished: Bool = false          // 영상이 끝났는지에 대한 여부
@@ -221,10 +224,12 @@ final class PlayerManager: ObservableObject {
             return
             
         case .lockButtonTapped:
+            changeOrientationLockState(to: .landscape)
             controllerDisplayState = .lock
             return
             
         case .unlockButtonTapped:
+            changeOrientationLockState(to: .all)
             controllerDisplayState = .normal
             return
             
@@ -241,6 +246,14 @@ final class PlayerManager: ObservableObject {
             
         case .systemDragged:
             controllerDisplayState = .hidden
+            
+        case .orientationLock:
+            // TODO: 추후 Lock 관련 로직 배치
+            break
+            
+        case .orientationButtonTapped:
+            changeOrientation(to: currentOrientation == .portrait ? .landscape : .portrait)
+            return
         }
         
         updateState(currentState)
@@ -302,6 +315,29 @@ private extension PlayerManager {
         player?.seek(to: time, toleranceBefore: .zero, toleranceAfter: .zero) { [weak self] _ in
             self?.updateDragValue = nil
         }
+    }
+}
+
+// MARK: - Player Orientation
+private extension PlayerManager {
+    // 회전
+    func changeOrientation(to orientation: UIInterfaceOrientationMask) {
+        if #available (iOS 16.0, *) {
+            UIApplication.currentScene?.requestGeometryUpdate(.iOS(interfaceOrientations: orientation))
+            UIApplication.currentWindow?.rootViewController?.setNeedsUpdateOfSupportedInterfaceOrientations()
+        }
+        else {
+            UIDevice.current.setValue(orientation, forKey: "orientation")
+            UIViewController.attemptRotationToDeviceOrientation()
+        }
+    }
+    
+    // 회전 잠금
+    func changeOrientationLockState(to orientation: AppDelegate.OrientationPreferenceState) {
+        AppDelegate.orientationLock = orientation
+        
+        // 지원되는 인터페이스 방향이 변경되었음을 알림
+        UIApplication.currentWindow?.rootViewController?.setNeedsUpdateOfSupportedInterfaceOrientations()
     }
 }
 

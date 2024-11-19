@@ -13,7 +13,6 @@ struct ControllerContainerView: View {
     @EnvironmentObject var systemDataModel: SystemDataModel
     @EnvironmentObject var playerManager: PlayerManager
     @State private var cancellables = Set<AnyCancellable>()
-    @Binding var currentOrientation: UIInterfaceOrientation
     
     var body: some View {
         ZStack {
@@ -33,7 +32,7 @@ struct ControllerContainerView: View {
     private var content: some View {
         switch playerManager.controllerDisplayState {
         case .normal:
-            ControllerView(currentOrientation: $currentOrientation)
+            ControllerView()
         case .system:
             SystemDisplayView()
         case .lock:

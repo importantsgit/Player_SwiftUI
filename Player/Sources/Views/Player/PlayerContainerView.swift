@@ -47,16 +47,8 @@ struct playerContainerView: View {
     
     @State private var cancellables = Set<AnyCancellable>()
     
-    @Binding var currentOrientation: UIInterfaceOrientation
-    
-    init(
-        currentOrientation: Binding<UIInterfaceOrientation>
-    ) {
-        self._currentOrientation = currentOrientation
-    }
-    
     var body: some View {
-        let isLandscape = currentOrientation.isLandscape
+        let isLandscape = playerManager.currentOrientation.isLandscape
         let tapGesture = SpatialTapGesture()
             .onEnded { state in
                 guard playerManager.containerDisplayState == .normal
@@ -156,7 +148,7 @@ struct playerContainerView: View {
                     .gesture(combineGesture)
                     .overlay {
                         ZStack {
-                            ControllerContainerView(currentOrientation: $currentOrientation)
+                            ControllerContainerView()
                                 .environmentObject(systemDataModel)
                                 .hidden(playerManager.controllerDisplayState == .hidden)
                                 .onChange(of: seekGesture) { (_, seekGesture) in
@@ -169,7 +161,7 @@ struct playerContainerView: View {
                     }
             }
             
-            AudioModeView(currentOrientation: $currentOrientation)
+            AudioModeView()
                 .hidden(playerManager.containerDisplayState != .audio)
             
             HStack(spacing: 0) {
@@ -234,7 +226,7 @@ struct playerContainerView: View {
 }
 
 #Preview {
-    playerContainerView(currentOrientation: .constant(.portrait))
+    playerContainerView()
         .environmentObject(PlayerManager())
 }
 

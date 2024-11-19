@@ -11,7 +11,6 @@ import SwiftData
 @main
 struct PlayerApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
-    @StateObject private var orientationManager = OrientationManager.shared
     
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
@@ -27,8 +26,6 @@ struct PlayerApp: App {
     }()
 
     var body: some Scene {
-        
-        
         WindowGroup {
             let url = URL(string: "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4")!
             ContentView(url: url)
@@ -53,19 +50,35 @@ class AppDelegate: NSObject, UIApplicationDelegate {
     }
 }
 
-class OrientationManager: ObservableObject {
-    static let shared = OrientationManager()
-    
-    @Published var orientation: UIInterfaceOrientation = .portrait
-    var supportedOrientations: UIInterfaceOrientationMask = .all
-    
-    private init() {}
-    
-    func lockOrientation(_ orientation: UIInterfaceOrientationMask) {
-        supportedOrientations = orientation
+extension AppDelegate {
+    enum OrientationPreferenceState: String {
+        case portrait
+        case landscape
+        case all
+        
+        var mask: UIInterfaceOrientationMask {
+            switch self {
+            case .all: return .all
+            case .landscape: return .landscape
+            case .portrait: return .portrait
+            }
+        }
+        
+        func matches(to orientation: UIInterfaceOrientation) -> Bool {
+            switch self {
+            case .all:
+                return true
+            case .landscape:
+                return orientation.isLandscape
+            case .portrait:
+                return orientation.isPortrait
+            }
+        }
     }
     
-    func unlockOrientation() {
-        supportedOrientations = .all
+    static var orientationLock: OrientationPreferenceState = .all
+    
+    func application(_ application: UIApplication, supportedInterfaceOrientationsFor window: UIWindow?) -> UIInterfaceOrientationMask {
+        AppDelegate.orientationLock.mask
     }
 }
