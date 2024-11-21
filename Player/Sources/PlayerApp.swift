@@ -27,7 +27,8 @@ struct PlayerApp: App {
 
     var body: some Scene {
         WindowGroup {
-            let url = URL(string: "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4")!
+            let url = URL(string: "https://bitdash-a.akamaihd.net/content/sintel/hls/playlist.m3u8")!
+            // let url = URL(string: "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4")!
             ContentView(url: url)
         }
         .modelContainer(sharedModelContainer)
