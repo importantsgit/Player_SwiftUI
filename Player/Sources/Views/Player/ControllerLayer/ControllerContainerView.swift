@@ -31,7 +31,7 @@ struct ControllerContainerView: View {
     @ViewBuilder
     private var content: some View {
         switch playerManager.controllerDisplayState {
-        case .normal:
+        case .base:
             ControllerView()
         case .system:
             SystemDisplayView()

@@ -51,12 +51,6 @@ struct playerContainerView: View {
         let isLandscape = playerManager.currentOrientation.isLandscape
         let tapGesture = SpatialTapGesture()
             .onEnded { state in
-                guard playerManager.containerDisplayState == .normal
-                else {
-                    playerManager.containerDisplayState = .normal
-                    return
-                }
-                
                 handleAction(.controllerTapped)
                 
                 let halfWidth = viewSize.width / 2
@@ -76,7 +70,7 @@ struct playerContainerView: View {
             }
             .onChanged { state in
                 guard isLandscape,
-                      playerManager.containerDisplayState == .normal
+                      playerManager.containerDisplayState == .base
                 else { return }
                 
                 guard let safeAreaInset = UIApplication.safeAreaInset,
@@ -159,6 +153,11 @@ struct playerContainerView: View {
                                 .gesture(tapGesture)
                         }
                     }
+                
+                if isLandscape && playerManager.contentDisplayState != .hidden {
+                    ContentListView()
+                        .frame(width: 200)
+                }
             }
             
             AudioModeView()

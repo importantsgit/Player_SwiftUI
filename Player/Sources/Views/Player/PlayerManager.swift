@@ -12,14 +12,20 @@ import SwiftUI
 import MediaPlayer
 
 final class PlayerManager: ObservableObject {
+    enum ContentDisplayState: Equatable {
+        case hidden
+        case contentList
+    }
+    
     enum ContainerDisplayState: Equatable {
-        case normal
+        case base
         case audio
         case setting
     }
     
+    // FIXME: 두 가지의 상태 값을 가지고 있어야 한다
     enum ControllerDisplayState: Equatable {
-        case normal
+        case base
         case system
         case lock
         case hidden
@@ -85,8 +91,9 @@ final class PlayerManager: ObservableObject {
         case orientationLock
     }
     
-    @Published var containerDisplayState: ContainerDisplayState = .normal // 플레이어 컨테이너의 GUI
-    @Published var controllerDisplayState: ControllerDisplayState = .normal // 플레이어 내 컨트롤러의 GUI
+    @Published var containerDisplayState: ContainerDisplayState = .base // 플레이어 컨테이너의 GUI
+    @Published var controllerDisplayState: ControllerDisplayState = .base // 플레이어 내 컨트롤러의 GUI
+    @Published var contentDisplayState: ContentDisplayState = .hidden // 콘텐츠 리스트 GUI
     {
         didSet {
             print(controllerDisplayState)
@@ -167,25 +174,25 @@ final class PlayerManager: ObservableObject {
             
         case .deactivateAudioButtonTapped:
             currentState.mode = .pipMode
-            containerDisplayState = .normal
-            controllerDisplayState = .normal
+            containerDisplayState = .base
+            controllerDisplayState = .base
             
         case .playButtonTapped:
             if isCurrentItemFinished {
                 player?.seek(to: .zero)
-                controllerDisplayState = .normal
+                controllerDisplayState = .base
                 return
             }
             
             playerTimeState == .playing ?
             player?.pause() :
             player?.play()
-            controllerDisplayState = .normal
+            controllerDisplayState = .base
             return
             // state update X
         
         case .controllerTapped:
-            controllerDisplayState = controllerDisplayState == .hidden ? .normal : .hidden
+            controllerDisplayState = controllerDisplayState == .hidden ? controllerDisplayState : .hidden
             return
             
         case .resetGestureValue:
@@ -198,7 +205,7 @@ final class PlayerManager: ObservableObject {
         case let .seekingBarDragging(value):
             self.updateDragValue = value
             self.progressRatio = value
-            controllerDisplayState = .normal
+            controllerDisplayState = .base
             return
             
         case .seekingBarDragged:
@@ -208,7 +215,7 @@ final class PlayerManager: ObservableObject {
         case let .microSeekingDragging(value):
             self.updateDragValue = value
             // TODO: micro drag GUI
-            controllerDisplayState = .normal
+            controllerDisplayState = .base
             return
             
         case .microSeekingDragged:
@@ -230,11 +237,11 @@ final class PlayerManager: ObservableObject {
             
         case .unlockButtonTapped:
             changeOrientationLockState(to: .all)
-            controllerDisplayState = .normal
+            controllerDisplayState = .base
             return
             
         case .closeContentButtonTapped:
-            containerDisplayState = .normal
+            containerDisplayState = .base
             return
             
         case .settingButtonTapped:
